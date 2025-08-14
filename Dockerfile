@@ -14,11 +14,11 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy the rest of the application's code into the container at /app
-COPY app.py .
+COPY exo_app.py .
 
 # Make port 8501 available to the world outside this container
 EXPOSE 8501
 
 # Define the command to run your app using streamlit
 # The --server.address=0.0.0.0 flag makes the app accessible from outside the container
-CMD ["streamlit", "run", "app.py", "--server.port=8501", "--server.address=0.0.0.0"]
+CMD ["streamlit", "run", "exo_app.py", "--server.port=8501", "--server.address=0.0.0.0"]
