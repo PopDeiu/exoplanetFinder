@@ -1,6 +1,9 @@
-streamlit==1.37.0
-lightkurve==2.4.2
-matplotlib==3.9.0
-pandas==2.2.2
-numpy==1.26.4
-astroquery==0.4.7
+streamlit
+lightkurve
+matplotlib
+astropy
+pandas
+numpy
+astroquery
+plotly>=5.0.0
+streamlit-plotly-events
