@@ -19,14 +19,9 @@ st.markdown("Găsește stele cu semnale care arată ca niște planete, dar sunt 
 # --- NEW: Explanation for False Positives ---
 st.info(
     "Un **fals pozitiv** apare atunci când o scădere a luminozității unei stele este cauzată de altceva decât o planetă în tranzit."
-    "Cauze frecvente includ: 
-
-"
-    "* **Stele binare eclipsante:** Două stele care se orbitează și se eclipsează una pe cealaltă. 
-"
-    "* **Zgomot instrumental:** Defecțiuni sau erori ale instrumentelor telescopului. 
-
-"
+    "Cauze frecvente includ: "
+    "* **Stele binare eclipsante:** Două stele care se orbitează și se eclipsează una pe cealaltă. "
+    "* **Zgomot instrumental:** Defecțiuni sau erori ale instrumentelor telescopului. "
     "Studierea acestor semnale este esențială pentru a antrena algoritmii să distingă planetele reale de semnalele false."
 )
 
