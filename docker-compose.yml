@@ -3,6 +3,8 @@ version: '3.8'
 services:
   app:
     image: exoplanetfinder:latest
+    build: .
+    restart: unless-stopped
     ports:
       - "8501:8501"
     environment:
