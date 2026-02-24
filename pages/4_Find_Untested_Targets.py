@@ -1,9 +1,19 @@
 # pages/4_Find_Untested_Targets.py
 
 import streamlit as st
-from utils import fetch_untested_targets
+from utils import fetch_untested_targets, set_galaxy_background, set_sidebar_style
 
-st.header("Găsește ținte posibil netestate 🔭")
+st.set_page_config(
+    page_title="Tâinte netestate",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
+
+# --- Aplicare styling IMEDIAT ---
+set_sidebar_style()
+set_galaxy_background("stellar")
+
+st.header("Găsește ținte posibil netestate")
 st.caption("Descoperă stele interesante care nu au încă planete candidate asociate.")
 st.markdown("Acest instrument preia un eșantion aleatoriu de stele luminoase și apropiate care apar în cataloagele TESS, dar nu au încă un candidat cunoscut la planetă. Este un loc foarte bun pentru a căuta semnale noi!")
 

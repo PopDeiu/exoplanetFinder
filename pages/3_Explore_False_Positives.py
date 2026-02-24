@@ -1,13 +1,23 @@
 # pages/3_Explore_False_Positives.py
 
 import streamlit as st
-from utils import fetch_catalog_targets
+from utils import fetch_catalog_targets, set_galaxy_background, set_sidebar_style
+
+st.set_page_config(
+    page_title="False pozitive",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
+
+# --- Aplicare styling IMEDIAT ---
+set_sidebar_style()
+set_galaxy_background("void")
 
 st.header("Semnale care NU sunt planete (false pozitive)")
 
 st.caption("Pasul 3 din 4 · Învață cum arată semnalele care pot imita tranzitele de exoplanete.")
 
-with st.expander("ℹ️ De ce sunt importante falsele pozitive?", expanded=False):
+with st.expander("De ce sunt importante falsele pozitive?", expanded=False):
     st.markdown(
         """
         Semnalele de tip *fals pozitiv* ajută la antrenarea intuiției (și a algoritmilor) pentru a diferenția planetele reale

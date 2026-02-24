@@ -17,6 +17,105 @@ from astroquery.skyview import SkyView
 from astroquery.nasa_exoplanet_archive import NasaExoplanetArchive
 import traceback # Folosit pentru a afișa erori detaliate, deși este eliminat din funcția principală
 
+# --- Funcții pentru fundal galaxie ---
+def set_galaxy_background(gradient_type="default"):
+    """
+    Aplică un fundal cu temă galaxie transparent pentru pagina curentă.
+    Toate gradienturile folosesc combinația negru-mov în variante diferite.
+    
+    Tipuri de gradient disponibile:
+    - "default": Negru-mov linear 135deg
+    - "nebula": Mov deschis - negru linear 120deg
+    - "void": Negru - mov închis radial
+    - "cosmic": Negru - mov mediu diagonal 45deg
+    - "stellar": Navy - mov conic gradient
+    """
+    
+    gradients = {
+        "default": "linear-gradient(135deg, rgba(10, 5, 20, 0.9) 0%, rgba(40, 20, 70, 0.85) 50%, rgba(5, 2, 15, 0.92) 100%)",
+        "nebula": "linear-gradient(120deg, rgba(50, 25, 90, 0.88) 0%, rgba(70, 30, 120, 0.85) 40%, rgba(15, 8, 30, 0.9) 100%)",
+        "void": "radial-gradient(ellipse at 20% 50%, rgba(60, 20, 100, 0.85) 0%, rgba(10, 5, 20, 0.9) 60%, rgba(3, 1, 10, 0.95) 100%)",
+        "cosmic": "linear-gradient(45deg, rgba(8, 4, 16, 0.92) 0%, rgba(50, 15, 90, 0.8) 35%, rgba(80, 30, 140, 0.75) 100%)",
+        "stellar": "conic-gradient(from 45deg at 30% 50%, rgba(15, 5, 35, 0.9) 0deg, rgba(60, 20, 110, 0.8) 120deg, rgba(40, 15, 80, 0.85) 240deg, rgba(15, 5, 35, 0.9) 360deg)"
+    }
+    
+    bg = gradients.get(gradient_type, gradients["default"])
+    
+    st.markdown(f"""
+    <style>
+        html, body, [data-testid="stAppViewContainer"], [data-testid="stBaseViewContainer"] {{
+            background: {bg};
+            background-attachment: fixed;
+        }}
+        .stApp {{
+            background: {bg};
+            background-attachment: fixed;
+        }}
+        [data-testid="stHeader"] {{
+            background: transparent;
+        }}
+        [data-testid="stToolbar"] {{
+            background: transparent;
+        }}
+        .stMainBlockContainer {{
+            background: transparent;
+        }}
+    </style>
+    """, unsafe_allow_html=True)
+
+def set_sidebar_style():
+    """
+    Aplică stilul consistent al sidebar-ului cu stele pe toate paginile.
+    """
+    st.markdown("""
+    <style>
+        [data-testid="stSidebar"] {
+            background: linear-gradient(180deg, 
+                rgba(30, 15, 60, 0.95) 0%,
+                rgba(20, 10, 40, 0.95) 50%,
+                rgba(10, 5, 30, 0.95) 100%
+            );
+            position: relative;
+        }
+        
+        [data-testid="stSidebar"]::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image: 
+                radial-gradient(2px 2px at 20px 30px, #e0e0ff, rgba(224, 224, 255, 0)),
+                radial-gradient(2px 2px at 60px 70px, #ffffff, rgba(255, 255, 255, 0)),
+                radial-gradient(1px 1px at 50px 50px, #e0c3fc, rgba(224, 195, 252, 0)),
+                radial-gradient(1px 1px at 130px 80px, #ffffff, rgba(255, 255, 255, 0)),
+                radial-gradient(2px 2px at 90px 10px, #e0e0ff, rgba(224, 224, 255, 0)),
+                radial-gradient(1px 1px at 130px 40px, #c8b6ff, rgba(200, 182, 255, 0)),
+                radial-gradient(1px 1px at 90px 130px, #e0c3fc, rgba(224, 195, 252, 0)),
+                radial-gradient(2px 2px at 30px 120px, #ffffff, rgba(255, 255, 255, 0)),
+                radial-gradient(1px 1px at 80px 200px, #e0e0ff, rgba(224, 224, 255, 0)),
+                radial-gradient(1px 1px at 120px 150px, #c8b6ff, rgba(200, 182, 255, 0)),
+                radial-gradient(2px 2px at 10px 100px, #e0c3fc, rgba(224, 195, 252, 0)),
+                radial-gradient(1px 1px at 100px 250px, #ffffff, rgba(255, 255, 255, 0));
+            background-repeat: repeat;
+            background-size: 150px 300px;
+            background-position: 0 0;
+            pointer-events: none;
+            z-index: 1;
+        }
+        
+        [data-testid="stSidebarContent"] {
+            position: relative;
+            z-index: 2;
+        }
+        
+        section[data-testid="stSidebar"] > div {
+            background: transparent !important;
+        }
+    </style>
+    """, unsafe_allow_html=True)
+
 # --- Funcții pentru pagina TESS Planet Search ---
 
 @st.cache_data(ttl="1d")

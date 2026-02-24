@@ -1,12 +1,17 @@
 # app.py
 
 import streamlit as st
+from utils import set_galaxy_background, set_sidebar_style
 
 st.set_page_config(
     page_title="Vânătorul de exoplanete AI",
-    page_icon="🔭",
-    layout="wide"
+    layout="wide",
+    initial_sidebar_state="expanded"
 )
+
+# --- Aplicare styling IMEDIAT ---
+set_sidebar_style()
+set_galaxy_background("default")
 
 # --- Session State Initialization ---
 # This block runs only once at the start of a session, ensuring all
@@ -32,7 +37,7 @@ if 'period_range' not in st.session_state:
     st.session_state.period_range = (1.0, 30.0)
 
 # --- Main Page Content ---
-st.title("🔭 Vânătorul de exoplanete AI")
+st.title("Vânătorul de exoplanete AI")
 st.caption("Aplicație interactivă pentru explorarea datelor TESS și Kepler și căutarea de exoplanete prin metoda tranzitului.")
 
 col1, col2 = st.columns([2, 1])
@@ -41,11 +46,11 @@ with col1:
     st.subheader("Ce poți face aici")
     st.markdown(
         """
-        - 🔍 **Caută o stea** după nume sau ID (TIC / TOI / KIC) și descarcă curba ei de lumină.
-        - 🪐 **Explorează sisteme cu planete** – candidați și planete confirmate.
-        - ⚠️ **Analizează false pozitive** – semnale care arată ca o planetă, dar sunt cauzate de alte fenomene.
-        - ✨ **Găsește ținte netestate** care merită investigate în detaliu.
-        - ⚙️ **Ajustează parametrii de analiză** (binning, sigma, interval de perioade) din pagina *Setări*.
+        - **Caută o stea** după nume sau ID (TIC / TOI / KIC) și descarcă curba ei de lumină.
+        - **Explorează sisteme cu planete** – candidați și planete confirmate.
+        - **Analizează false pozitive** – semnale care arată ca o planetă, dar sunt cauzate de alte fenomene.
+        - **Găsește ținte netestate** care merită investigate în detaliu.
+        - **Ajustează parametrii de analiză** (binning, sigma, interval de perioade) din pagina *Setări*.
         """
     )
 

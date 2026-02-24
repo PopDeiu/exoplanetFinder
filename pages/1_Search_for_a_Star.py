@@ -2,13 +2,23 @@
 
 import streamlit as st
 import lightkurve as lk
-from utils import process_selected_data
+from utils import process_selected_data, set_galaxy_background, set_sidebar_style
+
+st.set_page_config(
+    page_title="Caută o stea",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
+
+# --- Aplicare styling IMEDIAT ---
+set_sidebar_style()
+set_galaxy_background("nebula")
 
 st.header("Caută o stea după nume sau ID")
 
 st.caption("Pasul 1 din 4 · Alege ținta pe care vrei să o studiezi.")
 
-with st.expander("ℹ️ Cum funcționează această pagină", expanded=False):
+with st.expander("Cum funcționează această pagină", expanded=False):
     st.markdown(
         """
         1. Introdu numele sau ID-ul unei stele (de exemplu `Kepler-10`, `TIC 261136679`).

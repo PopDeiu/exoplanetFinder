@@ -1,12 +1,20 @@
 # pages/7_TESS_Planet_Search.py
 
 import streamlit as st
-from utils import search_toi_catalog
+from utils import search_toi_catalog, set_galaxy_background, set_sidebar_style
 import pandas as pd
 
-st.set_page_config(page_title="Căutare de planete TESS")
+st.set_page_config(
+    page_title="Căutare de planete TESS",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
 
-st.header("🛰️ Căutare de planete TESS")
+# --- Aplicare styling IMEDIAT ---
+set_sidebar_style()
+set_galaxy_background("stellar")
+
+st.header("Căutare de planete TESS")
 st.caption("Interfață pentru filtrarea și explorarea catalogului oficial TOI al misiunii TESS.")
 
 st.markdown("Folosește filtrele de mai jos pentru a căuta în catalogul oficial **TESS Objects of Interest (TOI)** din ExoFOP.")

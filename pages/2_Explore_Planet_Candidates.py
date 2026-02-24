@@ -1,13 +1,23 @@
 # pages/2_Explore_Planet_Candidates.py
 
 import streamlit as st
-from utils import fetch_catalog_targets
+from utils import fetch_catalog_targets, set_galaxy_background, set_sidebar_style
+
+st.set_page_config(
+    page_title="Explorează planete",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
+
+# --- Aplicare styling IMEDIAT ---
+set_sidebar_style()
+set_galaxy_background("cosmic")
 
 st.header("Descoperă candidați interesanți la planete")
 
 st.caption("Pasul 2 din 4 · Explorează sisteme în care au fost deja identificate planete sau candidați.")
 
-with st.expander("ℹ️ Ce este această pagină?", expanded=False):
+with st.expander("Ce este această pagină?", expanded=False):
     st.markdown(
         """
         - Alege o misiune (TESS sau Kepler) pentru a descărca o listă de ținte interesante.  

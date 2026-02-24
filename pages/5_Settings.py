@@ -1,6 +1,17 @@
 # pages/5_Setări.py
 
 import streamlit as st
+from utils import set_galaxy_background, set_sidebar_style
+
+st.set_page_config(
+    page_title="Setări",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
+
+# --- Aplicare styling IMEDIAT ---
+set_sidebar_style()
+set_galaxy_background("nebula")
 
 st.header("Setări")
 

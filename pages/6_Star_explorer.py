@@ -2,15 +2,23 @@
 
 import streamlit as st
 import numpy as np
-from utils import fetch_star_data
+from utils import fetch_star_data, set_galaxy_background, set_sidebar_style
 from astroquery.skyview import SkyView
 from astropy.wcs import WCS
 
+st.set_page_config(
+    page_title="Explorator de stele",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
+
 PIXELS_DEFAULT = 600  # dimensiune fixă pentru imaginea SkyView
 
-st.set_page_config(page_title="Explorator de stele")
+# --- Aplicare styling IMEDIAT ---
+set_sidebar_style()
+set_galaxy_background("cosmic")
 
-st.header("🌟 Explorator de stele")
+st.header("Explorator de stele")
 st.caption(
     "Pasul 4 din 4 · Explorează în detaliu proprietățile unei stele și ale planetelor ei cunoscute."
 )
@@ -66,7 +74,7 @@ st.markdown("---")
 # =========================
 # Căutare stea
 # =========================
-cauta = st.button("🔍 Caută steaua")
+cauta = st.button("Caută steaua")
 
 if cauta:
     star_name = st.session_state.get("star_name_input", "").strip()
