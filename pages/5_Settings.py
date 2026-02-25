@@ -24,7 +24,7 @@ if st.sidebar.button("🔄 Reset la valori recomandate"):
     st.session_state.selected_authors = ["SPOC", "Kepler"]
     st.rerun()
 
-st.header("⚙️ Configurare Vânător de Exoplanete")
+st.header(" Configurare Vânător de Exoplanete")
 st.markdown("""
 Ajustează parametrii de mai jos pentru a optimiza modul în care algoritmul procesează datele telescopului. 
 *Setările sunt salvate automat pentru întreaga sesiune.*
@@ -37,7 +37,7 @@ with st.expander("🌐 Surse de Date și Misiuni", expanded=True):
     st.multiselect(
         "Misiuni Spațiale", 
         options=["TESS", "Kepler", "K2"], 
-        default=st.session_state.get('selected_missions', ["TESS", "Kepler", "K2"]),
+        default=["TESS", "Kepler", "K2"],
         key="selected_missions",
         help="TESS (misiune activă) vs Kepler/K2 (date istorice de mare precizie)."
     )
@@ -45,7 +45,7 @@ with st.expander("🌐 Surse de Date și Misiuni", expanded=True):
     st.multiselect(
         "Autori / Pipeline-uri", 
         options=["SPOC", "Kepler", "K2", "QLP", "TESS-SPOC"], 
-        default=st.session_state.get('selected_authors', ["SPOC", "Kepler"]),
+        default=["SPOC", "Kepler"],
         key="selected_authors",
         help="Pipeline-ul reprezintă metoda prin care datele brute au fost procesate inițial de NASA sau universități."
     )
@@ -62,7 +62,7 @@ with col1:
     st.slider(
         'Dimensiunea bin-ului (minute)', 
         min_value=1, max_value=60, 
-        value=st.session_state.get('bin_size', 10),
+        value=10,
         key='bin_size',
         help="Gruparea punctelor reduce zgomotul instrumental (zgomotul alb)."
     )
@@ -76,7 +76,7 @@ with col2:
     st.slider(
         'Sigma Clipping (Prag erori)', 
         min_value=1.0, max_value=10.0, step=0.1, 
-        value=st.session_state.get('sigma_val', 5.0),
+        value=5.0,
         key='sigma_val',
         help="Identifică și elimină punctele care deviază prea mult de la medie (erori de senzor)."
     )
@@ -97,7 +97,7 @@ st.markdown("Definește limitele de timp în care algoritmul caută orbitele pla
 st.slider(
     "Interval de perioade orbitale (zile)", 
     min_value=0.5, max_value=100.0, 
-    value=st.session_state.get('period_range', (1.0, 30.0)),
+    value=(1.0, 30.0),
     key='period_range',
     help="Definește durata minimă și maximă a unui 'an' pe planeta căutată."
 )
