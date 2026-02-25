@@ -31,7 +31,9 @@ with st.expander("Cum funcționează această pagină", expanded=False):
     )
 st.markdown("Introdu numele unei stele sau ID‑ul ei pentru a căuta tranzite de exoplanete. Poți ajusta toți parametrii de analiză din pagina **Setări**.")
 star_id_input = st.text_input(label="Introdu numele sau ID‑ul unei stele", value="TIC 261136679", help="Încearcă să copiezi un „ID căutabil” din paginile de explorare!")
-
+st.info(f"🚀 Setări active: Binning: {st.session_state.bin_size} min | "
+        f"Sigma: {st.session_state.sigma_val} | "
+        f"Periodă: {st.session_state.period_range[0]}-{st.session_state.period_range[1]} zile")
 if st.button("Caută date", type="primary"):
     st.session_state.search_result = None
     if not star_id_input:

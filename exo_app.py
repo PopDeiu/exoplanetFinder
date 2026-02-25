@@ -1,7 +1,7 @@
 # app.py
 
 import streamlit as st
-from utils import set_galaxy_background, set_sidebar_style
+from utils.ui_styles import set_galaxy_background, set_sidebar_style
 
 st.set_page_config(
     page_title="Vânătorul de exoplanete AI",

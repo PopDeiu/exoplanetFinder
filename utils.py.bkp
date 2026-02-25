@@ -1,0 +1,235 @@
+# utils.py
+# Versiunea finală optimizată cu grafice profesionale și modelare BLS.
+
+import streamlit as st
+import lightkurve as lk
+import matplotlib.pyplot as plt
+import astropy.time
+from astropy import units as u
+from astropy.timeseries import BoxLeastSquares
+from astropy import constants as const
+import time
+import pandas as pd
+import numpy as np
+from astroquery.mast import Catalogs
+from astroquery.simbad import Simbad
+from astroquery.skyview import SkyView
+from astroquery.nasa_exoplanet_archive import NasaExoplanetArchive
+import traceback
+
+# --- Configurare Stil Grafice ---
+def apply_pro_plotting_style():
+    plt.style.use('dark_background')
+    params = {
+        "axes.facecolor": "#0E1117",
+        "figure.facecolor": "#0E1117",
+        "axes.edgecolor": "#444",
+        "grid.color": "#222",
+        "font.family": "sans-serif",
+        "axes.titlesize": 12,
+        "axes.labelsize": 10
+    }
+    plt.rcParams.update(params)
+
+# --- Funcții pentru fundal galaxie ---
+def set_galaxy_background(gradient_type="default"):
+    gradients = {
+        "default": "linear-gradient(135deg, rgba(10, 5, 20, 0.9) 0%, rgba(40, 20, 70, 0.85) 50%, rgba(5, 2, 15, 0.92) 100%)",
+        "nebula": "linear-gradient(120deg, rgba(50, 25, 90, 0.88) 0%, rgba(70, 30, 120, 0.85) 40%, rgba(15, 8, 30, 0.9) 100%)",
+        "void": "radial-gradient(ellipse at 20% 50%, rgba(60, 20, 100, 0.85) 0%, rgba(10, 5, 20, 0.9) 60%, rgba(3, 1, 10, 0.95) 100%)",
+        "cosmic": "linear-gradient(45deg, rgba(8, 4, 16, 0.92) 0%, rgba(50, 15, 90, 0.8) 35%, rgba(80, 30, 140, 0.75) 100%)",
+        "stellar": "conic-gradient(from 45deg at 30% 50%, rgba(15, 5, 35, 0.9) 0deg, rgba(60, 20, 110, 0.8) 120deg, rgba(40, 15, 80, 0.85) 240deg, rgba(15, 5, 35, 0.9) 360deg)"
+    }
+    bg = gradients.get(gradient_type, gradients["default"])
+    st.markdown(f"""
+    <style>
+        html, body, [data-testid="stAppViewContainer"], [data-testid="stBaseViewContainer"] {{ background: {bg}; background-attachment: fixed; }}
+        .stApp {{ background: {bg}; background-attachment: fixed; }}
+        [data-testid="stHeader"], [data-testid="stToolbar"] {{ background: transparent; }}
+        .stMainBlockContainer {{ background: transparent; }}
+    </style>
+    """, unsafe_allow_html=True)
+
+def set_sidebar_style():
+    st.markdown("""
+    <style>
+        [data-testid="stSidebar"] {
+            background: linear-gradient(180deg, rgba(30, 15, 60, 0.95) 0%, rgba(20, 10, 40, 0.95) 50%, rgba(10, 5, 30, 0.95) 100%);
+        }
+        [data-testid="stSidebar"]::before {
+            content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+            background-image: radial-gradient(2px 2px at 20px 30px, #e0e0ff, rgba(224, 224, 255, 0)),
+                              radial-gradient(2px 2px at 60px 70px, #ffffff, rgba(255, 255, 255, 0)),
+                              radial-gradient(1px 1px at 100px 250px, #ffffff, rgba(255, 255, 255, 0));
+            background-repeat: repeat; background-size: 150px 300px; pointer-events: none; z-index: 1;
+        }
+    </style>
+    """, unsafe_allow_html=True)
+
+# --- Funcții Cataloage ---
+@st.cache_data(ttl="1d")
+def get_toi_catalog():
+    toi_url = "https://exofop.ipac.caltech.edu/tess/download_toi.php?sort=toi&output=csv"
+    try: return pd.read_csv(toi_url)
+    except: return pd.DataFrame()
+
+@st.cache_data(ttl="7d")
+def fetch_star_data(star_name):
+    facts = {}
+    tic_id = None
+    cleaned_input = star_name.upper().replace("TIC", "").strip()
+    if cleaned_input.isdigit(): tic_id = cleaned_input
+    else:
+        try:
+            simbad = Simbad()
+            simbad.add_votable_fields('ids')
+            simbad_result = simbad.query_object(star_name)
+            all_ids = simbad_result['IDS'][0].decode('utf-8')
+            for identifier in all_ids.split('|'):
+                if 'TIC' in identifier:
+                    tic_id = identifier.replace("TIC", "").strip()
+                    break
+        except: return {"error": "Nu s-a putut rezolva numele stelei."}
+
+    try:
+        star_data = Catalogs.query_criteria(catalog="TIC", ID=int(tic_id))
+        facts.update({'tic_id': tic_id, 'name': star_name, 'ra': star_data['ra'][0], 'dec': star_data['dec'][0]})
+        facts['radius'] = f"{star_data['rad'][0]:.2f}" if 'rad' in star_data.columns else "N/A"
+        facts['Teff'] = f"{star_data['Teff'][0]:.0f}" if 'Teff' in star_data.columns else "N/A"
+    except: return {"error": "Eroare la preluarea datelor TIC."}
+    return facts
+
+@st.cache_data(ttl="7d")
+def get_star_parameters(target_id):
+    try:
+        numeric_id = target_id.upper().replace("TIC", "").strip()
+        star_data = Catalogs.query_criteria(catalog="TIC", ID=int(numeric_id))
+        return star_data['rad'][0] if len(star_data) > 0 else None
+    except: return None
+
+# --- Analiza Principală ---
+def process_selected_data(selected_items, bin_minutes, outlier_sigma, period_min, period_max):
+    apply_pro_plotting_style()
+    status_placeholder = st.empty()
+    try:
+        search_result_df = selected_items.table.to_pandas()
+        target_id = search_result_df['target_name'][0]
+        star_radius_solar = get_star_parameters(target_id)
+
+        total_files = len(selected_items)
+        st.header("Step 3: Analysis Results")
+        progress_bar = st.progress(0)
+
+        processed_light_curves = []
+        downloaded_tpfs = []
+
+        for i in range(total_files):
+            status_placeholder.info(f"⬇️ Descarcare fișier {i + 1}/{total_files}...")
+            data_product = selected_items[i].download()
+            if data_product is None: continue
+
+            if isinstance(data_product, lk.targetpixelfile.TargetPixelFile):
+                downloaded_tpfs.append(data_product)
+                lc = data_product.to_lightcurve(aperture_mask='pipeline').remove_nans()
+            elif isinstance(data_product, lk.lightcurve.LightCurve):
+                lc = data_product.remove_nans()
+            else: continue
+
+            if len(lc.flux) > 0:
+                processed_light_curves.append(lc.normalize())
+            progress_bar.progress((i + 1) / total_files)
+
+        if not processed_light_curves:
+            st.error("Nu s-au găsit date valide."); return
+
+        # Unire și curățare
+        lc = lk.LightCurveCollection(processed_light_curves).stitch().remove_nans()
+        bin_size_in_days = bin_minutes / 1440.0
+        binned_lc = lc.bin(time_bin_size=bin_size_in_days * u.day)
+        clean_lc = binned_lc.flatten(window_length=101).remove_outliers(sigma=outlier_sigma)
+
+        # Căutare BLS optimizată
+        model = BoxLeastSquares(t=clean_lc.time.value, y=clean_lc.flux.value)
+        period_grid = np.linspace(period_min, period_max, 10000)
+        durations = np.linspace(0.05, 0.2, 10)
+        results = model.power(period_grid, durations)
+
+        index = np.argmax(results.power)
+        planet_period_val = results.period[index]
+        planet_t0_val = results.transit_time[index]
+        planet_duration_val = results.duration[index]
+        planet_depth_val = results.depth[index]
+
+        planet_period = planet_period_val * u.day
+        planet_t0 = astropy.time.Time(planet_t0_val, format=clean_lc.time.format)
+
+        st.success(f"🎯 Semnal detectat la P = **{planet_period.value:.4f} zile**")
+
+        # Metricile
+        c1, c2, c3 = st.columns(3)
+        c1.metric("Perioada", f"{planet_period.value:.4f} d")
+        c2.metric("Adâncime", f"{planet_depth_val:.4f}")
+        if star_radius_solar:
+            r_earth = (star_radius_solar * np.sqrt(planet_depth_val) * u.R_sun).to(u.R_earth).value
+            c3.metric("Raza Est.", f"{r_earth:.2f} R⊕")
+
+        # --- Grafice Profi ---
+        
+        # 1. Periodograma
+        st.subheader("🔍 Periodogramă BLS")
+        fig_pow, ax_pow = plt.subplots(figsize=(10, 4))
+        ax_pow.plot(results.period, results.power, color='#1E90FF', lw=0.8)
+        ax_pow.axvline(planet_period.value, color='#FF4B4B', ls='--', alpha=0.7)
+        ax_pow.set_xlabel("Perioada (zile)"); ax_pow.set_ylabel("Putere")
+        st.pyplot(fig_pow)
+
+        # 2. Curba Pliată + Model (Linia Roșie)
+        st.subheader("🌟 Curba Pliată și Modelul Tranzitului")
+        folded_lc = clean_lc.fold(period=planet_period, epoch_time=planet_t0)
+        
+        fig_fold, ax_fold = plt.subplots(figsize=(10, 5))
+        # Datele reale
+        ax_fold.scatter(folded_lc.time.value, folded_lc.flux.value, s=2, color='#1E90FF', alpha=0.5, label="Date observate")
+        
+        # Generare Model BLS (Linia Roșie)
+        x_model = np.linspace(folded_lc.time.value.min(), folded_lc.time.value.max(), 1000)
+        y_model = model.model(x_model + planet_t0_val, planet_period_val, planet_duration_val, planet_t0_val)
+        ax_fold.plot(x_model, y_model, color='#FF4B4B', lw=2.5, label="Model BLS")
+        
+        ax_fold.set_xlim(-0.5, 0.5) # Zoom pe tranzit
+        ax_fold.set_xlabel("Faza (zile)"); ax_fold.set_ylabel("Flux Normalizat")
+        ax_fold.legend(); ax_fold.grid(alpha=0.1)
+        st.pyplot(fig_fold)
+
+        status_placeholder.success("🎉 Analiză completă!")
+
+    except Exception as e:
+        st.error(f"Eroare: {e}")
+        st.code(traceback.format_exc())
+
+# --- Explore Functions ---
+@st.cache_data(ttl="1d")
+def fetch_catalog_targets(mission_name, disposition_type, num_targets=25):
+    try:
+        if mission_name == "TESS":
+            url = "https://exofop.ipac.caltech.edu/tess/download_toi.php?sort=toi&output=csv"
+            id_col, prefix, disp_col = 'TIC ID', 'TIC ', 'TFOPWG Disposition'
+            targets = ["CP", "PC"] if disposition_type == "PLANETS" else ["FP"]
+        else:
+            url = "https://exoplanetarchive.ipac.caltech.edu/cgi-bin/nstedAPI/nph-nstedAPI?table=cumulative&select=kepid,koi_disposition,koi_period,koi_prad&format=csv"
+            id_col, prefix, disp_col = 'kepid', 'KIC ', 'koi_disposition'
+            targets = ["CONFIRMED", "CANDIDATE"] if disposition_type == "PLANETS" else ["FALSE POSITIVE"]
+        
+        df = pd.read_csv(url, comment='#')
+        filtered = df[df[disp_col].isin(targets)].sample(n=min(num_targets, len(df)))
+        filtered["Searchable ID"] = prefix + filtered[id_col].astype(str)
+        return filtered
+    except: return pd.DataFrame()
+
+@st.cache_data(ttl="1d")
+def fetch_untested_targets(num_to_sample=100):
+    try:
+        tic_sample = Catalogs.query_criteria(catalog="TIC", Vmag=(9, 13), pagesize=num_to_sample).to_pandas()
+        tic_sample['Searchable ID'] = "TIC " + tic_sample['ID'].astype(str)
+        return tic_sample[['Searchable ID', 'Tmag', 'ra', 'dec']]
+    except: return pd.DataFrame()
