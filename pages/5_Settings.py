@@ -48,7 +48,7 @@ Ajustează parametrii de mai jos pentru a optimiza modul în care algoritmul pro
 """)
 
 # --- SECȚIUNEA 1: SURSE DE DATE ---
-with st.expander("🌐 Surse de Date și Misiuni", expanded=True):
+with st.expander(" Surse de Date și Misiuni", expanded=True):
     st.info("Alege de unde să fie descărcate datele brute.")
     
     st.multiselect(
@@ -72,7 +72,7 @@ with st.expander("🌐 Surse de Date și Misiuni", expanded=True):
 st.divider()
 
 # --- SECȚIUNEA 2: PROCESARE SEMNAL ---
-st.subheader("🧹 Curățare și Netezire (Preprocessing)")
+st.subheader("Curățare și Netezire (Preprocessing)")
 st.markdown("Acești parametri decid cum „pregătim” curba de lumină înainte de a căuta planete.")
 
 col1, col2 = st.columns(2)
@@ -110,7 +110,7 @@ with col2:
 
 # --- SECȚIUNEA 3: CĂUTARE PERIODICĂ ---
 st.divider()
-st.subheader("🔍 Parametri Algoritm BLS (Box Least Squares)")
+st.subheader("Parametri Algoritm BLS (Box Least Squares)")
 st.markdown("Definește limitele de timp în care algoritmul caută orbitele planetelor.")
 
 
@@ -129,12 +129,12 @@ p_min, p_max = st.session_state.get('period_range', (1.0, 30.0))
 if p_max <= 10:
     st.warning(f"⚠️ Căutare limitată la planete extrem de apropiate (orbite sub {p_max} zile).")
 elif p_max >= 50:
-    st.info(f"ℹ️ Căutare extinsă până la {p_max} zile. Procesarea va dura mai mult.")
+    st.info(f"Căutare extinsă până la {p_max} zile. Procesarea va dura mai mult.")
 else:
-    st.success("✅ Interval optim pentru detectarea candidaților TESS/Kepler.")
+    st.success("Interval optim pentru detectarea candidaților TESS/Kepler.")
 
 # Vizualizare pentru Debug (Opțional, poți să-l ștergi dacă te încurcă)
-with st.expander("🛠️ Verifică Starea Tehnică"):
+with st.expander("Verifică Starea Tehnică"):
     st.json({
         "bin_size": st.session_state.bin_size,
         "sigma": st.session_state.sigma_val,
