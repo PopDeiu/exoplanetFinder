@@ -1,6 +1,5 @@
 import streamlit as st
-from utils import set_galaxy_background, set_sidebar_style
-from utils.settings_manager import save_settings, load_settings
+from utils import set_galaxy_background, set_sidebar_style, init_session_state, save_settings
 
 st.set_page_config(
     page_title="Setări Analiză",
@@ -10,6 +9,9 @@ st.set_page_config(
 
 set_sidebar_style()
 set_galaxy_background("nebula")
+
+# --- Inițializare session state din fișierul persistent ---
+init_session_state()
 
 # Funcție pentru salvarea automată
 def save_all_settings():
@@ -52,7 +54,7 @@ with st.expander("🌐 Surse de Date și Misiuni", expanded=True):
     st.multiselect(
         "Misiuni Spațiale", 
         options=["TESS", "Kepler", "K2"], 
-        default=["TESS", "Kepler", "K2"],
+        default=st.session_state.selected_missions,
         key="selected_missions",
         on_change=save_all_settings,
         help="TESS (misiune activă) vs Kepler/K2 (date istorice de mare precizie)."
@@ -61,7 +63,7 @@ with st.expander("🌐 Surse de Date și Misiuni", expanded=True):
     st.multiselect(
         "Autori / Pipeline-uri", 
         options=["SPOC", "Kepler", "K2", "QLP", "TESS-SPOC"], 
-        default=["SPOC", "Kepler"],
+        default=st.session_state.selected_authors,
         key="selected_authors",
         on_change=save_all_settings,
         help="Pipeline-ul reprezintă metoda prin care datele brute au fost procesate inițial de NASA sau universități."
@@ -79,7 +81,7 @@ with col1:
     st.slider(
         'Dimensiunea bin-ului (minute)', 
         min_value=1, max_value=60, 
-        value=10,
+        value=st.session_state.bin_size,
         key='bin_size',
         on_change=save_all_settings,
         help="Gruparea punctelor reduce zgomotul instrumental (zgomotul alb)."
@@ -94,7 +96,7 @@ with col2:
     st.slider(
         'Sigma Clipping (Prag erori)', 
         min_value=1.0, max_value=10.0, step=0.1, 
-        value=5.0,
+        value=st.session_state.sigma_val,
         key='sigma_val',
         on_change=save_all_settings,
         help="Identifică și elimină punctele care deviază prea mult de la medie (erori de senzor)."
@@ -116,7 +118,7 @@ st.markdown("Definește limitele de timp în care algoritmul caută orbitele pla
 st.slider(
     "Interval de perioade orbitale (zile)", 
     min_value=0.5, max_value=100.0, 
-    value=(1.0, 30.0),
+    value=st.session_state.period_range,
     on_change=save_all_settings,
     key='period_range',
     help="Definește durata minimă și maximă a unui 'an' pe planeta căutată."

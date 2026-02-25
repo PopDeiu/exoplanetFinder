@@ -2,7 +2,7 @@
 
 import streamlit as st
 import lightkurve as lk
-from utils import process_selected_data, set_galaxy_background, set_sidebar_style
+from utils import process_selected_data, set_galaxy_background, set_sidebar_style, init_session_state
 
 st.set_page_config(
     page_title="Caută o stea",
@@ -13,6 +13,9 @@ st.set_page_config(
 # --- Aplicare styling IMEDIAT ---
 set_sidebar_style()
 set_galaxy_background("nebula")
+
+# --- Inițializare session state din setări persistente ---
+init_session_state()
 
 st.header("Caută o stea după nume sau ID")
 

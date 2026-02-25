@@ -64,3 +64,32 @@ def update_setting(key, value):
     settings = load_settings()
     settings[key] = value
     save_settings(settings)
+
+
+def init_session_state():
+    """
+    Inițializează session state cu setările salvate persistent.
+    Apelează această funcție la începutul fiecărei pagini pentru a asigura că
+    datele din fișier sunt încărcate în session_state.
+    
+    Exemplu de utilizare:
+        import streamlit as st
+        from utils.settings_manager import init_session_state
+        
+        st.set_page_config(...)
+        init_session_state()  # La început, înainte de widgets
+    """
+    import streamlit as st
+    
+    persisted_settings = load_settings()
+    
+    if 'bin_size' not in st.session_state:
+        st.session_state.bin_size = persisted_settings['bin_size']
+    if 'sigma_val' not in st.session_state:
+        st.session_state.sigma_val = persisted_settings['sigma_val']
+    if 'period_range' not in st.session_state:
+        st.session_state.period_range = tuple(persisted_settings['period_range'])
+    if 'selected_missions' not in st.session_state:
+        st.session_state.selected_missions = persisted_settings['selected_missions']
+    if 'selected_authors' not in st.session_state:
+        st.session_state.selected_authors = persisted_settings['selected_authors']
