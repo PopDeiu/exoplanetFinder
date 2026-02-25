@@ -2,6 +2,7 @@
 
 import streamlit as st
 from utils.ui_styles import set_galaxy_background, set_sidebar_style
+from utils.settings_manager import load_settings
 
 st.set_page_config(
     page_title="Vânătorul de exoplanete AI",
@@ -16,6 +17,7 @@ set_galaxy_background("default")
 # --- Session State Initialization ---
 # This block runs only once at the start of a session, ensuring all
 # necessary variables are defined.
+# Doar elementele de rezultate sunt inițializate la None
 if 'search_result' not in st.session_state:
     st.session_state.search_result = None
 if 'explore_planets_results' not in st.session_state:
@@ -24,17 +26,21 @@ if 'explore_fps_results' not in st.session_state:
     st.session_state.explore_fps_results = None
 if 'untested_results' not in st.session_state:
     st.session_state.untested_results = None
-# Initialize settings in session state
+
+# Încarcă setările salvate din fișier
+persisted_settings = load_settings()
+
+# Initialize settings in session state (din fișier persistent)
 if 'selected_missions' not in st.session_state:
-    st.session_state.selected_missions = ["TESS", "Kepler", "K2"]
+    st.session_state.selected_missions = persisted_settings['selected_missions']
 if 'selected_authors' not in st.session_state:
-    st.session_state.selected_authors = ["SPOC", "Kepler", "K2"]
+    st.session_state.selected_authors = persisted_settings['selected_authors']
 if 'bin_size' not in st.session_state:
-    st.session_state.bin_size = 10
+    st.session_state.bin_size = persisted_settings['bin_size']
 if 'sigma_val' not in st.session_state:
-    st.session_state.sigma_val = 5.0
+    st.session_state.sigma_val = persisted_settings['sigma_val']
 if 'period_range' not in st.session_state:
-    st.session_state.period_range = (1.0, 30.0)
+    st.session_state.period_range = tuple(persisted_settings['period_range'])
 
 # --- Main Page Content ---
 st.title("Vânătorul de exoplanete AI")

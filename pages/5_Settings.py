@@ -1,5 +1,6 @@
 import streamlit as st
 from utils import set_galaxy_background, set_sidebar_style
+from utils.settings_manager import save_settings, load_settings
 
 st.set_page_config(
     page_title="Setări Analiză",
@@ -9,6 +10,17 @@ st.set_page_config(
 
 set_sidebar_style()
 set_galaxy_background("nebula")
+
+# Funcție pentru salvarea automată
+def save_all_settings():
+    """Salvează toate setările în fișier persistent."""
+    save_settings({
+        "bin_size": st.session_state.bin_size,
+        "sigma_val": st.session_state.sigma_val,
+        "period_range": list(st.session_state.period_range),
+        "selected_missions": st.session_state.selected_missions,
+        "selected_authors": st.session_state.selected_authors
+    })
 
 # --- LOGICA DE RESET (Reparată: Ștergem și re-inițializăm) ---
 if st.sidebar.button("🔄 Reset la valori recomandate"):
@@ -22,6 +34,9 @@ if st.sidebar.button("🔄 Reset la valori recomandate"):
     st.session_state.period_range = (1.0, 30.0)
     st.session_state.selected_missions = ["TESS", "Kepler", "K2"]
     st.session_state.selected_authors = ["SPOC", "Kepler"]
+    
+    # Salvează reset-ul în fișier
+    save_all_settings()
     st.rerun()
 
 st.header(" Configurare Vânător de Exoplanete")
@@ -39,6 +54,7 @@ with st.expander("🌐 Surse de Date și Misiuni", expanded=True):
         options=["TESS", "Kepler", "K2"], 
         default=["TESS", "Kepler", "K2"],
         key="selected_missions",
+        on_change=save_all_settings,
         help="TESS (misiune activă) vs Kepler/K2 (date istorice de mare precizie)."
     )
     
@@ -47,6 +63,7 @@ with st.expander("🌐 Surse de Date și Misiuni", expanded=True):
         options=["SPOC", "Kepler", "K2", "QLP", "TESS-SPOC"], 
         default=["SPOC", "Kepler"],
         key="selected_authors",
+        on_change=save_all_settings,
         help="Pipeline-ul reprezintă metoda prin care datele brute au fost procesate inițial de NASA sau universități."
     )
 
@@ -64,6 +81,7 @@ with col1:
         min_value=1, max_value=60, 
         value=10,
         key='bin_size',
+        on_change=save_all_settings,
         help="Gruparea punctelor reduce zgomotul instrumental (zgomotul alb)."
     )
     st.caption("""
@@ -78,6 +96,7 @@ with col2:
         min_value=1.0, max_value=10.0, step=0.1, 
         value=5.0,
         key='sigma_val',
+        on_change=save_all_settings,
         help="Identifică și elimină punctele care deviază prea mult de la medie (erori de senzor)."
     )
     st.caption("""
@@ -98,6 +117,7 @@ st.slider(
     "Interval de perioade orbitale (zile)", 
     min_value=0.5, max_value=100.0, 
     value=(1.0, 30.0),
+    on_change=save_all_settings,
     key='period_range',
     help="Definește durata minimă și maximă a unui 'an' pe planeta căutată."
 )
