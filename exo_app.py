@@ -74,7 +74,7 @@ with col1:
         3. Alege seturile de date (sectoare / misiuni) și apasă **„Procesează fișierele selectate”**.
         """
     )
-    if st.button("🚀 Folosește un exemplu (Kepler-10)", type="primary"):
+    if st.button("Folosește un exemplu (Kepler-10)", type="primary"):
         st.session_state["quick_start_example"] = "Kepler-10"
         st.success("Exemplul a fost salvat. Deschide pagina „Caută o stea după nume sau ID” pentru a-l folosi.")
 
