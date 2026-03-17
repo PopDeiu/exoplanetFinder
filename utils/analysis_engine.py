@@ -7,6 +7,103 @@ from astropy import units as u
 from astropy.timeseries import BoxLeastSquares
 from .ui_styles import apply_pro_plotting_style
 from .data_fetchers import get_star_parameters
+from io import BytesIO
+from reportlab.lib.pagesizes import letter, landscape
+from reportlab.lib.units import inch
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image, PageBreak
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.enums import TA_CENTER, TA_LEFT
+from PIL import Image as PILImage
+
+def generate_pdf_report(star_name, period, depth, radius, figure):
+    """
+    Generează un raport PDF cu rezultatele analizei exoplanetei.
+    
+    Parameters:
+    - star_name: Numele stelei
+    - period: Perioada găsită
+    - depth: Adâncime (depth)
+    - radius: Raza estimată
+    - figure: Figure matplotlib cu graficul
+    
+    Returns:
+    - bytes_pdf: Fișierul PDF în format bytes
+    """
+    
+    # Creează un buffer pentru PDF
+    pdf_buffer = BytesIO()
+    
+    # Creează documentul PDF în format landscape
+    doc = SimpleDocTemplate(pdf_buffer, pagesize=landscape(letter))
+    styles = getSampleStyleSheet()
+    
+    # Creează stiluri personalizate
+    title_style = ParagraphStyle(
+        'CustomTitle',
+        parent=styles['Heading1'],
+        fontSize=24,
+        textColor="#000000",
+        spaceAfter=30,
+        alignment=TA_CENTER,
+        fontName='Helvetica-Bold'
+    )
+    
+    normal_style = styles['Normal']
+    heading_style = ParagraphStyle(
+        'CustomHeading',
+        parent=styles['Heading2'],
+        fontSize=14,
+        textColor="#A132DD",
+        spaceAfter=12,
+        fontName='Helvetica-Bold'
+    )
+    
+    # Lista de elemente pentru PDF
+    elements = []
+    
+    # Titlu și mesaj de felicitări
+    elements.append(Paragraph(f"Felicitari! Ai gasit o potentiala exoplaneta in jurul stelei <b><font color=\"#A132DD\">{star_name}</font></b>!", title_style))
+    elements.append(Spacer(1, 0.15*inch))
+    
+    
+    # Convertește figura matplotlib în imagine PNG
+    img_buffer = BytesIO()
+    figure.savefig(img_buffer, format='png', dpi=150, bbox_inches='tight')
+    img_buffer.seek(0)
+    
+    
+    
+    # Redimensionează imaginea să încapă pe pagină
+    img = Image(img_buffer, width=7.5*inch, height=3.3*inch)
+    elements.append(img)
+    elements.append(Spacer(1, 0.15*inch))
+    
+    # Adaugă o nouă pagină pentru metrici
+    
+    
+    # Metrici
+    elements.append(Paragraph("Rezultatele Analizei", heading_style))
+    elements.append(Spacer(1, 0.2*inch))
+    
+    metrics_text = f"""
+    <b>Perioada Gasita:</b> {period:.4f} zile<br/>
+    <b>Adancime:</b> {depth:.4f}<br/>
+    """
+    
+    if radius:
+        metrics_text += f"<b>Raza Estimata:</b> {radius:.2f} R⊕ (raze terestre)"
+    
+    elements.append(Paragraph(metrics_text, styles['Normal']))
+    elements.append(Spacer(1, 0.3*inch))
+    
+    
+    
+    # Construiește PDF-ul
+    doc.build(elements)
+    
+    # Obține bytes-ul PDF-ului
+    pdf_buffer.seek(0)
+    return pdf_buffer.getvalue()
 
 def process_selected_data(selected_items, bin_minutes, outlier_sigma, period_min, period_max):
     apply_pro_plotting_style()
@@ -16,12 +113,12 @@ def process_selected_data(selected_items, bin_minutes, outlier_sigma, period_min
         target_id = selected_items.table.to_pandas()['target_name'][0]
         star_radius = get_star_parameters(target_id)
         
-        st.header("🔍 Rezultatele Analizei Pas cu Pas")
+        st.header("Rezultatele Analizei Pas cu Pas")
         
         # DESCĂRCARE
         lcs = []
         for i in range(len(selected_items)):
-            status_placeholder.info(f"⬇️ Se descarcă segmentul {i+1}...")
+            status_placeholder.info(f"Se descarcă segmentul {i+1}...")
             data = selected_items[i].download()
             if data:
                 lc = data.to_lightcurve(aperture_mask='pipeline') if hasattr(data, 'to_lightcurve') else data
@@ -41,7 +138,7 @@ def process_selected_data(selected_items, bin_minutes, outlier_sigma, period_min
         st.pyplot(fig1)
 
         # PASUL 2: PERIODOGRAMA
-        status_placeholder.info("⚙️ Calculăm periodograma BLS...")
+        status_placeholder.info("Calculăm periodograma BLS...")
         model = BoxLeastSquares(t=clean_lc.time.value, y=clean_lc.flux.value)
         p_grid = np.linspace(period_min, period_max, 10000)
         results = model.power(p_grid, np.linspace(0.05, 0.2, 10))
@@ -54,7 +151,7 @@ def process_selected_data(selected_items, bin_minutes, outlier_sigma, period_min
         st.subheader("Pasul 2: Identificarea Perioadei")
         fig2, ax2 = plt.subplots(figsize=(10, 3))
         ax2.plot(results.period, results.power, color='#1E90FF', lw=0.8)
-        ax2.axvline(best_p, color='#FF4B4B', ls='--', alpha=0.7)
+        ax2.axvline(best_p, color="#B307AD", ls='--', alpha=0.7)
         ax2.set_xlabel("Perioada (zile)"); ax2.set_ylabel("Putere")
         st.pyplot(fig2)
 
@@ -67,7 +164,7 @@ def process_selected_data(selected_items, bin_minutes, outlier_sigma, period_min
         
         x_m = np.linspace(-0.5, 0.5, 1000)
         y_m = model.model(x_m + best_t0, best_p, best_dur, best_t0)
-        ax3.plot(x_m, y_m, color='#FF4B4B', lw=2.5, label="Model BLS")
+        ax3.plot(x_m, y_m, color="#B307AD", lw=2.5, label="Model BLS")
         
         ax3.set_xlim(-0.4, 0.4); ax3.legend(); ax3.grid(alpha=0.1)
         st.pyplot(fig3)
@@ -77,10 +174,23 @@ def process_selected_data(selected_items, bin_minutes, outlier_sigma, period_min
         c1, c2, c3 = st.columns(3)
         c1.metric("Perioada Găsită", f"{best_p:.4f} d")
         c2.metric("Adâncime", f"{best_depth:.4f}")
+        r_e = None
         if star_radius:
             r_e = (star_radius * np.sqrt(best_depth) * u.R_sun).to(u.R_earth).value
             c3.metric("Raza Est.", f"{r_e:.2f} R⊕")
 
-        status_placeholder.success("🎉 Analiză finalizată!")
+        # Store data for PDF export
+        st.session_state.pdf_export_data = {
+            'star_name': target_id,
+            'period': best_p,
+            'depth': best_depth,
+            'radius': r_e,
+            'figure': fig3
+        }
+
+
+        status_placeholder.success("Analiza finalizata, poti descarca pdf-ul!")
+        
     except Exception as e:
         st.error(f"Analiza a eșuat: {e}")
+

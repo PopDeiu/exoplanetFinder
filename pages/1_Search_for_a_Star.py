@@ -2,7 +2,7 @@
 
 import streamlit as st
 import lightkurve as lk
-from utils import process_selected_data, set_galaxy_background, set_sidebar_style, init_session_state
+from utils import process_selected_data, set_galaxy_background, set_sidebar_style, init_session_state, generate_pdf_report
 
 st.set_page_config(
     page_title="Caută o stea",
@@ -34,7 +34,7 @@ with st.expander("Cum funcționează această pagină", expanded=False):
     )
 st.markdown("Introdu numele unei stele sau ID‑ul ei pentru a căuta tranzite de exoplanete. Poți ajusta toți parametrii de analiză din pagina **Setări**.")
 star_id_input = st.text_input(label="Introdu numele sau ID‑ul unei stele", value="TIC 261136679", help="Încearcă să copiezi un „ID căutabil” din paginile de explorare!")
-st.info(f"🚀 Setări active: Binning: {st.session_state.bin_size} min | "
+st.info(f"Setări active: Binning: {st.session_state.bin_size} min | "
         f"Sigma: {st.session_state.sigma_val} | "
         f"Periodă: {st.session_state.period_range[0]}-{st.session_state.period_range[1]} zile")
 if st.button("Caută date", type="primary"):
@@ -88,3 +88,26 @@ if st.session_state.search_result is not None:
                 period_min=min_p,
                 period_max=max_p
             )
+
+# Afișează butonul de descărcare PDF dacă analiza a fost completată
+if hasattr(st.session_state, 'pdf_export_data') and st.session_state.pdf_export_data:
+    st.divider()
+    st.subheader("Descarcă Raportul")
+    
+    pdf_data = st.session_state.pdf_export_data
+    pdf_bytes = generate_pdf_report(
+        star_name=pdf_data['star_name'],
+        period=pdf_data['period'],
+        depth=pdf_data['depth'],
+        radius=pdf_data['radius'],
+        figure=pdf_data['figure']
+    )
+    
+    st.download_button(
+        label="Descarcă raportul PDF",
+        data=pdf_bytes,
+        file_name=f"Exoplanet_Report_{pdf_data['star_name']}.pdf",
+        mime="application/pdf",
+        use_container_width=True,
+        type="primary"
+    )

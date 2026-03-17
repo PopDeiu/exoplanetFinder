@@ -16,7 +16,7 @@ from .data_fetchers import (
     fetch_untested_targets
 )
 
-from .analysis_engine import process_selected_data
+from .analysis_engine import process_selected_data, generate_pdf_report
 
 from .settings_manager import (
     init_session_state,

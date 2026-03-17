@@ -43,7 +43,7 @@ if 'period_range' not in st.session_state:
     st.session_state.period_range = tuple(persisted_settings['period_range'])
 
 # --- Main Page Content ---
-st.title("Vânătorul de exoplanete AI")
+st.title("Exoplanet Hunter")
 st.caption("Aplicație interactivă pentru explorarea datelor TESS și Kepler și căutarea de exoplanete prin metoda tranzitului.")
 
 col1, col2 = st.columns([2, 1])
@@ -100,6 +100,8 @@ with col2:
         precum MAST și ExoFOP. Ai nevoie de conexiune la internet pentru a rula interogările.
         """
     )
+    
+    
 
 
 # --- Sidebar Content ---
