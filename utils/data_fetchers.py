@@ -53,35 +53,182 @@ def search_toi_catalog(dispositions=None, radius_range=None, period_range=None, 
 
 @st.cache_data(ttl="7d")
 def fetch_star_data(star_name):
-    """Preia date fizice despre stea și imagini SkyView."""
     facts = {}
     try:
-        cleaned_input = star_name.upper().replace("TIC", "").strip()
-        if cleaned_input.isdigit():
-            tic_id = cleaned_input
-        else:
-            simbad = Simbad()
-            simbad.add_votable_fields('ids')
-            result = simbad.query_object(star_name)
-            ids = result['IDS'][0].decode('utf-8')
-            tic_id = [i.replace("TIC", "").strip() for i in ids.split('|') if 'TIC' in i][0]
+        # 1. Configurare SIMBAD
+        custom_simbad = Simbad()
+        custom_simbad.add_votable_fields('ids', 'ra', 'dec', 'sp', 'dist')
+        
+        # Curățare input
+        search_query = star_name.strip()
+        result_table = custom_simbad.query_object(search_query)
+        
+        search_name_for_nasa = search_query
+        tic_id = None
+        spectral_type = "N/A"
 
-        star_data = Catalogs.query_criteria(catalog="TIC", ID=int(tic_id))
-        facts = {
-            'tic_id': tic_id, 'name': star_name, 'ra': star_data['ra'][0], 'dec': star_data['dec'][0],
-            'Tmag': star_data['Tmag'][0] if 'Tmag' in star_data.columns else "N/A",
-            'Teff': star_data['Teff'][0] if 'Teff' in star_data.columns else "N/A",
-            'radius': star_data['rad'][0] if 'rad' in star_data.columns else None,
-            'mass': star_data['mass'][0] if 'mass' in star_data.columns else "N/A"
-        }
+        # Verificăm dacă SIMBAD a găsit ceva
+        if result_table is not None and len(result_table) > 0:
+            # Extragere sigură IDS
+            if 'IDS' in result_table.colnames:
+                raw_ids = result_table['IDS'][0]
+                # Decodare din bytes în string dacă e necesar
+                ids_str = raw_ids.decode('utf-8') if isinstance(raw_ids, bytes) else str(raw_ids)
+                ids_list = ids_str.split('|')
+                
+                for identifier in ids_list:
+                    if 'TIC' in identifier:
+                        tic_id = identifier.replace("TIC", "").strip()
+                    # Căutăm nume recunoscute de NASA
+                    if any(x in identifier for x in ["WASP-", "Kepler-", "K2-", "HD ", "HIP ", "GJ ", "TOI"]):
+                        search_name_for_nasa = identifier.strip()
+
+            if 'SP_TYPE' in result_table.colnames:
+                sp = result_table['SP_TYPE'][0]
+                spectral_type = sp.decode('utf-8') if isinstance(sp, bytes) else str(sp)
+
+        # 2. Date din Catalogul TIC (MAST)
+        if not tic_id and "TIC" in search_query.upper():
+            tic_id = "".join(filter(str.isdigit, search_query))
+
+        if tic_id:
+            star_data = Catalogs.query_criteria(catalog="TIC", ID=int(tic_id))
+            if len(star_data) > 0:
+                row = star_data[0]
+                teff = row.get('Teff')
+                rad = row.get('rad')
+                
+                # Calcule Astrofizice
+                lum_val = None
+                hz_i, hz_o = None, None
+                if rad and teff:
+                    # L/Lsun = (R/Rsun)^2 * (T/Tsun)^4
+                    lum_val = (float(rad)**2) * ((float(teff) / 5778)**4)
+                    hz_i = round(np.sqrt(lum_val / 1.1), 3)
+                    hz_o = round(np.sqrt(lum_val / 0.53), 3)
+
+                facts.update({
+                    'tic_id': tic_id,
+                    'ra': round(float(row['ra']), 5),
+                    'dec': round(float(row['dec']), 5),
+                    'Tmag': row.get('Tmag', "N/A"),
+                    'Teff': int(teff) if teff else "N/A",
+                    'radius': round(float(rad), 3) if rad else "N/A",
+                    'mass': round(float(row['mass']), 3) if row.get('mass') else "N/A",
+                    'luminosity': f"{lum_val:.2f}" if lum_val else "N/A",
+                    'hz_inner_au': hz_i,
+                    'hz_outer_au': hz_o,
+                    'spectral_type': spectral_type,
+                    'distance_ly': round(float(row['dist']) * 3.26, 2) if row.get('dist') else "N/A"
+                })
+
+        # 3. Interogare NASA (PSCompPars)
+        try:
+            planets = NasaExoplanetArchive.query_object(search_name_for_nasa, table="pscomppars")
+            # Convertim tabelul Astropy în Pandas DataFrame
+            df = planets.to_pandas()
+            facts['confirmed_planet_count'] = len(df)
+            facts['planet_df'] = df
+        except:
+            facts['confirmed_planet_count'] = 0
+            facts['planet_df'] = None
+
+        facts['name'] = search_name_for_nasa
         
-        planet_data = NasaExoplanetArchive.query_criteria(table="pscomppars", where=f"hostname = '{star_name}'")
-        facts['confirmed_planet_count'] = len(planet_data)
+    except Exception as e:
+        # Returnăm eroarea în dicționar pentru a o vedea în UI
+        return {"error": f"Eroare tehnică: {str(e)}"}
         
-        image_urls = SkyView.get_image_links(position=f"{facts['ra']} {facts['dec']}", survey=['DSS2 Red'])
-        facts['image_url'] = image_urls[0] if image_urls else None
-    except:
-        pass
+    return facts
+
+@st.cache_data(ttl="7d")
+def fetch_star_data(star_name):
+    facts = {}
+    try:
+        # 1. Configurare SIMBAD (Am eliminat 'dist' care cauza eroarea)
+        custom_simbad = Simbad()
+        custom_simbad.add_votable_fields('ids', 'ra', 'dec', 'sp')
+        
+        search_query = star_name.strip()
+        result_table = custom_simbad.query_object(search_query)
+        
+        search_name_for_nasa = search_query
+        tic_id = None
+        spectral_type = "N/A"
+
+        if result_table is not None and len(result_table) > 0:
+            if 'IDS' in result_table.colnames:
+                raw_ids = result_table['IDS'][0]
+                ids_str = raw_ids.decode('utf-8') if isinstance(raw_ids, bytes) else str(raw_ids)
+                ids_list = ids_str.split('|')
+                
+                for identifier in ids_list:
+                    if 'TIC' in identifier:
+                        # Extragem doar cifrele pentru TIC ID
+                        tic_id = "".join(filter(str.isdigit, identifier))
+                    if any(x in identifier for x in ["WASP-", "Kepler-", "K2-", "HD ", "HIP ", "GJ ", "TOI"]):
+                        search_name_for_nasa = identifier.strip()
+
+            if 'SP_TYPE' in result_table.colnames:
+                sp = result_table['SP_TYPE'][0]
+                spectral_type = sp.decode('utf-8') if isinstance(sp, bytes) else str(sp)
+
+        # 2. Date din Catalogul TIC (MAST)
+        # Dacă nu am găsit TIC-ul în SIMBAD, îl extragem din input dacă e de forma "TIC 123"
+        if not tic_id and "TIC" in search_query.upper():
+            tic_id = "".join(filter(str.isdigit, search_query))
+
+        if tic_id:
+            star_data = Catalogs.query_criteria(catalog="TIC", ID=int(tic_id))
+            if len(star_data) > 0:
+                row = star_data[0]
+                # Extragere valori cu fallback la None pentru calcule
+                teff = row.get('Teff')
+                rad = row.get('rad')
+                mass = row.get('mass')
+                dist_pc = row.get('dist') # Distanța în parseci din TIC
+                
+                # --- CALCULE ASTROFIZICE ---
+                lum_val = None
+                hz_i, hz_o = None, None
+                
+                if rad and teff:
+                    # L/Lsun = (R/Rsun)^2 * (T/Tsun)^4
+                    lum_val = (float(rad)**2) * ((float(teff) / 5778)**4)
+                    # Estimare Zona Locuibilă (HZ)
+                    hz_i = round(np.sqrt(lum_val / 1.1), 3)
+                    hz_o = round(np.sqrt(lum_val / 0.53), 3)
+
+                facts.update({
+                    'tic_id': tic_id,
+                    'ra': round(float(row['ra']), 5) if row.get('ra') else "N/A",
+                    'dec': round(float(row['dec']), 5) if row.get('dec') else "N/A",
+                    'Tmag': round(float(row['Tmag']), 3) if row.get('Tmag') else "N/A",
+                    'Teff': int(teff) if teff else "N/A",
+                    'radius': round(float(rad), 3) if rad else "N/A",
+                    'mass': round(float(mass), 3) if mass else "N/A",
+                    'luminosity': f"{lum_val:.2f}" if lum_val else "N/A",
+                    'hz_inner_au': hz_i,
+                    'hz_outer_au': hz_o,
+                    'spectral_type': spectral_type,
+                    'distance_ly': round(float(dist_pc) * 3.26156, 2) if dist_pc else "N/A"
+                })
+
+        # 3. Interogare NASA Arhivă (Folosim numele găsit sau cel introdus)
+        try:
+            planets = NasaExoplanetArchive.query_object(search_name_for_nasa, table="pscomppars")
+            df = planets.to_pandas()
+            facts['confirmed_planet_count'] = len(df)
+            facts['planet_df'] = df
+        except:
+            facts['confirmed_planet_count'] = 0
+            facts['planet_df'] = None
+
+        facts['name'] = search_name_for_nasa
+        
+    except Exception as e:
+        return {"error": f"Eroare tehnică: {str(e)}"}
+        
     return facts
 
 @st.cache_data(ttl="7d")
@@ -116,7 +263,7 @@ def fetch_catalog_targets(mission_name, disposition_type, num_targets=25):
         return pd.DataFrame()
 
 @st.cache_data(ttl="1h")
-def fetch_untested_targets(num_to_sample=20):
+def fetch_untested_targets(num_to_sample=100):
     """Găsește stele luminoase care nu sunt în catalogul TOI. Optimizat pentru viteză."""
     try:
         toi_df = get_toi_catalog()
