@@ -34,6 +34,44 @@ st.markdown(
 def fetch_skyview_image(position: str, survey: str, pixels: int = PIXELS_DEFAULT):
     """
     Întoarce (img_data, wcs) pentru imaginea SkyView sau (None, None) dacă nu reușește.
+    Forțează copierea datelor în RAM pentru a evita eroarea de fișier închis.
+    """
+    try:
+        images = SkyView.get_images(
+            position=position,
+            survey=[survey],
+            pixels=pixels,
+        )
+        if images:
+            # images[0] este un HDUList (o listă de unități de date astronomice)
+            hdu_list = images[0]
+            hdu = hdu_list[0]
+            
+            # --- MODIFICARE CRITICĂ: .copy() ---
+            # Copiem datele și header-ul în RAM pentru a rupe legătura cu fișierul temporar
+            data = hdu.data.copy()
+            header = hdu.header.copy()
+            
+            try:
+                wcs = WCS(header)
+            except Exception:
+                wcs = None
+            
+            # Închidem explicit lista de HDU pentru a elibera resursele
+            hdu_list.close()
+            
+            return data, wcs
+            
+    except Exception as e:
+        # Folosim st.error sau logging pentru a vedea eroarea exactă
+        st.warning(f"Nu s-a putut descărca imaginea din SkyView ({survey}): {e}")
+    
+    return None, None
+
+
+def fetch_skyview_image_vechi(position: str, survey: str, pixels: int = PIXELS_DEFAULT):
+    """
+    Întoarce (img_data, wcs) pentru imaginea SkyView sau (None, None) dacă nu reușește.
     """
     try:
         images = SkyView.get_images(
