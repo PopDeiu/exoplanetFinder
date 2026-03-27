@@ -18,32 +18,82 @@ set_galaxy_background("stellar")
 
 
 
-st.header("🔭 Găsește ținte posibil netestate")
+st.header("Găsește ținte posibil netestate")
 st.caption("Descoperă stele interesante care nu au încă planete candidate oficiale asociate.")
 st.markdown("""
 Acest instrument scanează catalogul **TESS Input Catalog (TIC)** pentru stele luminoase care **nu apar** în lista oficială de obiecte de interes (TOI). 
 Este "terenul de vânătoare" perfect pentru a găsi tranzite pe care algoritmii automați le-au omis.
 """)
 
-# Inițializare session_state pentru rezultate
+# Inițializare session_state pentru rezultate și paginare
 if 'untested_results' not in st.session_state:
     st.session_state.untested_results = None
+if 'current_page' not in st.session_state:
+    st.session_state.current_page = 0
+if 'items_per_page' not in st.session_state:
+    st.session_state.items_per_page = 20
 
-if st.button("🚀 Găsește stele netestate", type="primary", key="fetch_untested", use_container_width=True):
+if st.button("Găsește stele netestate", type="primary", key="fetch_untested", use_container_width=True):
     with st.spinner("Se corelează cataloagele TESS și se filtrează TOI-urile cunoscute..."):
         # Această funcție din utils/data_fetchers.py acum exclude automat TOI-urile
         st.session_state.untested_results = fetch_untested_targets(num_to_sample=20)
+        st.session_state.current_page = 0  # Reset la prima pagină
 
 if st.session_state.untested_results is not None:
     df = st.session_state.untested_results
     if df.empty:
         st.error("Nu s‑au găsit ținte netestate în acest eșantion. Încearcă din nou.")
     else:
-        st.subheader("🌟 Stele candidate pentru analiză")
+        st.subheader("Stele candidate pentru analiză")
+        
+        # --- CONTROALE DE PAGINARE ---
+        col1, col2, col3, col4 = st.columns([2, 2, 2, 2])
+        
+        with col1:
+            st.session_state.items_per_page = st.selectbox(
+                "Elemente per pagină:",
+                options=[10, 20, 50, 100],
+                index=1,  # Default: 20
+                key="items_select"
+            )
+        
+        # Calcularea numărului de pagini
+        total_items = len(df)
+        total_pages = (total_items + st.session_state.items_per_page - 1) // st.session_state.items_per_page
+        
+        # Asigurare că pagina curentă este validă
+        if st.session_state.current_page >= total_pages:
+            st.session_state.current_page = total_pages - 1
+        
+        with col2:
+            page_options = [f"Pagina {i+1}" for i in range(total_pages)]
+            selected_page_text = st.selectbox(
+                "Selectează pagina:",
+                options=page_options,
+                index=st.session_state.current_page,
+                key="page_select"
+            )
+            st.session_state.current_page = page_options.index(selected_page_text)
+        
+        with col3:
+            if st.button("➡️ Pagina Următoare", use_container_width=True):
+                if st.session_state.current_page < total_pages - 1:
+                    st.session_state.current_page += 1
+                    st.rerun()
+        
+        with col4:
+            st.metric("Total stele", total_items)
+        
+        st.markdown(f"**Pagina {st.session_state.current_page + 1} din {total_pages}**")
+        
+        # Calcularea indexurilor pentru pagina curentă
+        start_idx = st.session_state.current_page * st.session_state.items_per_page
+        end_idx = start_idx + st.session_state.items_per_page
+        df_paginated = df.iloc[start_idx:end_idx]
         
         # Ajustăm column_config pentru a se potrivi cu datele returnate de fetch_untested_targets
         st.dataframe(
-            df,
+            df_paginated,
             column_config={
                 "Searchable ID": st.column_config.TextColumn("ID Căutare", help="Copiază acest ID (ex: TIC 12345)"),
                 "Tmag": st.column_config.NumberColumn(
