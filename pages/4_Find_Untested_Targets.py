@@ -31,12 +31,12 @@ if 'untested_results' not in st.session_state:
 if 'current_page' not in st.session_state:
     st.session_state.current_page = 0
 if 'items_per_page' not in st.session_state:
-    st.session_state.items_per_page = 20
+    st.session_state.items_per_page = 100
 
 if st.button("Găsește stele netestate", type="primary", key="fetch_untested", use_container_width=True):
     with st.spinner("Se corelează cataloagele TESS și se filtrează TOI-urile cunoscute..."):
         # Această funcție din utils/data_fetchers.py acum exclude automat TOI-urile
-        st.session_state.untested_results = fetch_untested_targets(num_to_sample=20)
+        st.session_state.untested_results = fetch_untested_targets(num_to_sample=100)
         st.session_state.current_page = 0  # Reset la prima pagină
 
 if st.session_state.untested_results is not None:
@@ -53,7 +53,7 @@ if st.session_state.untested_results is not None:
             st.session_state.items_per_page = st.selectbox(
                 "Elemente per pagină:",
                 options=[10, 20, 50, 100],
-                index=1,  # Default: 20
+                index=1,  # Default: 100
                 key="items_select"
             )
         
