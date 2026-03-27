@@ -37,7 +37,6 @@ if st.button("Găsește stele netestate", type="primary", key="fetch_untested", 
     with st.spinner("Se corelează cataloagele TESS și se filtrează TOI-urile cunoscute..."):
         # Această funcție din utils/data_fetchers.py acum exclude automat TOI-urile
         st.session_state.untested_results = fetch_untested_targets(num_to_sample=20)
-        st.session_state.current_page = 0  # Reset la prima pagină
 
 if st.session_state.untested_results is not None:
     df = st.session_state.untested_results
