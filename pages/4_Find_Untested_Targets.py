@@ -75,11 +75,6 @@ if st.session_state.untested_results is not None:
             )
             st.session_state.current_page = page_options.index(selected_page_text)
         
-        with col3:
-            if st.button("➡️ Pagina Următoare", use_container_width=True):
-                if st.session_state.current_page < total_pages - 1:
-                    st.session_state.current_page += 1
-                    st.rerun()
         
         with col4:
             st.metric("Total stele", total_items)
