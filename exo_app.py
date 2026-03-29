@@ -8,10 +8,25 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded"
 )
-
+def set_custom_input_style():
+    st.markdown("""
+        <style>
+        /* Schimbă border-ul la focus (când dai click în el) */
+        div[data-baseweb="input"] > div:focus-within {
+            border-color: #9b59b6 !important;
+            box-shadow: 0 0 0 2px rgba(155, 89, 182, 0.5) !important;
+        }
+        /* Schimbă border-ul implicit pentru a fi mai vizibil */
+        div[data-baseweb="input"] {
+            border: 1px solid #9b59b6 !important;
+            border-radius: 5px;
+        }
+        </style>
+    """, unsafe_allow_html=True)
 # --- Aplicare styling IMEDIAT ---
 set_sidebar_style()
 set_galaxy_background("default")
+set_custom_input_style()
 
 # --- Session State Initialization ---
 if 'logged_in' not in st.session_state:
