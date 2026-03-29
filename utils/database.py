@@ -42,6 +42,28 @@ def register_user(username, password):
             return False, f"Eroare: {e}"
     return False, "Nu s-a putut conecta la DB"
 
+def save_star_observation(user_id, star_id, period, depth, radius, obs_text):
+    conn = get_connection()
+    if conn:
+        try:
+            cursor = conn.cursor()
+            # Avem 6 coloane listate aici (fără ID și created_at care sunt automate)
+            sql = """INSERT INTO saved_observations 
+                     (user_id, star_id, period, depth, radius, observations) 
+                     VALUES (%s, %s, %s, %s, %s, %s)"""
+            
+            # Trebuie să avem exact 6 elemente în acest tuplu:
+            values = (user_id, star_id, period, depth, radius, obs_text)
+            
+            cursor.execute(sql, values)
+            conn.commit()
+            cursor.close()
+            return True
+        except Exception as e:
+            st.error(f"Eroare SQL: {e}") # Debugging pentru a vedea eroarea exactă
+            return False
+    return False
+
 def verify_credentials(username, password):
     """Verifică user-ul și parola în baza de date."""
     conn = get_connection()

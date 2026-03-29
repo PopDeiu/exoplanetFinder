@@ -3,6 +3,7 @@
 import streamlit as st
 import lightkurve as lk
 from utils import process_selected_data, set_galaxy_background, set_sidebar_style, init_session_state, generate_pdf_report
+from utils.database import save_star_observation
 
 st.set_page_config(
     page_title="Caută o stea",
@@ -102,12 +103,54 @@ if hasattr(st.session_state, 'pdf_export_data') and st.session_state.pdf_export_
         radius=pdf_data['radius'],
         figure=pdf_data['figure']
     )
+
+    if hasattr(st.session_state, 'pdf_export_data') and st.session_state.pdf_export_data:
+        st.divider()
+        st.subheader("Finalizare Analiză")
     
-    st.download_button(
-        label="Descarcă raportul PDF",
-        data=pdf_bytes,
-        file_name=f"Exoplanet_Report_{pdf_data['star_name']}.pdf",
-        mime="application/pdf",
-        use_container_width=True,
-        type="primary"
-    )
+        col_pdf, col_save = st.columns(2)
+        
+        with col_pdf:
+            st.write("📄 Raport PDF")
+            pdf_data = st.session_state.pdf_export_data
+            pdf_bytes = generate_pdf_report(
+                star_name=pdf_data['star_name'],
+                period=pdf_data['period'],
+                depth=pdf_data['depth'],
+                radius=pdf_data['radius'],
+                figure=pdf_data['figure']
+            )
+        
+            st.download_button(
+                label="Descarcă raportul PDF",
+                data=pdf_bytes,
+                file_name=f"Exoplanet_Report_{pdf_data['star_name']}.pdf",
+                mime="application/pdf",
+                use_container_width=True,
+                type="primary"
+            )
+
+        # --- SECȚIUNE SALVARE ÎN CONT ---
+        with col_save:
+            st.write("💾 Salvează în profil")
+            if st.session_state.get('logged_in', False):
+                with st.container(border=True):
+                    user_notes = st.text_area("Notele tale / Observații", placeholder="Ex: Tranzit foarte clar, merită re-analizat.")
+                    
+                    if st.button("Salvează în baza de date", use_container_width=True):
+                        # Preluăm datele din session_state-ul creat de analiza anterioară
+                        success = save_star_observation(
+                            user_id=st.session_state.user_info['id'], # Presupunem că ID-ul e în user_info
+                            star_id=pdf_data['star_name'],
+                            period=pdf_data['period'],
+                            depth=pdf_data['depth'],
+                            radius=pdf_data['radius'],
+                            obs_text=user_notes
+                        )
+                        
+                        if success:
+                            st.success("Analiza a fost salvată în contul tău!")
+                        else:
+                            st.error("Eroare la salvarea datelor.")
+            else:
+                st.warning("Autentifică-te din sidebar pentru a salva rezultatele în contul tău.")
