@@ -140,7 +140,7 @@ if hasattr(st.session_state, 'pdf_export_data') and st.session_state.pdf_export_
                     if st.button("Salvează în baza de date", use_container_width=True):
                         # Preluăm datele din session_state-ul creat de analiza anterioară
                         success = save_star_observation(
-                            user_id=st.session_state.user_info['id'], # Presupunem că ID-ul e în user_info
+                            user_id=st.session_state.user_info['ID'], # Presupunem că ID-ul e în user_info
                             star_id=pdf_data['star_name'],
                             period=pdf_data['period'],
                             depth=pdf_data['depth'],
