@@ -21,4 +21,4 @@ EXPOSE 8501
 
 # Define the command to run your app using streamlit
 # The --server.address=0.0.0.0 flag makes the app accessible from outside the container
-CMD ["streamlit", "run", "exo_app.py", "--server.port=8501", "--server.address=0.0.0.0"]
+CMD ["streamlit", "run", "Acasa.py", "--server.port=8501", "--server.address=0.0.0.0"]
