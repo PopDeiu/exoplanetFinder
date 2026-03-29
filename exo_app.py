@@ -1,16 +1,15 @@
 import streamlit as st
 from utils.ui_styles import set_galaxy_background, set_sidebar_style
 from utils.settings_manager import load_settings
-from utils.database import verify_credentials 
+from utils.database import verify_credentials # Funcția creată anterior în utils
 
-# --- Configurare Pagină ---
 st.set_page_config(
     page_title="Vânătorul de exoplanete AI",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
-# --- Aplicare styling ---
+# --- Aplicare styling IMEDIAT ---
 set_sidebar_style()
 set_galaxy_background("default")
 
@@ -20,46 +19,6 @@ if 'logged_in' not in st.session_state:
 if 'user_info' not in st.session_state:
     st.session_state.user_info = None
 
-# --- LOGICĂ LOGIN OPȚIONALĂ ÎN SIDEBAR ---
-with st.sidebar:
-    if not st.session_state.logged_in:
-        with st.expander("🔐 Login (Opțional pentru salvare setări)"):
-            with st.form("sidebar_login"):
-                user_input = st.text_input("Utilizator")
-                pass_input = st.text_input("Parolă", type="password")
-                if st.form_submit_button("Log In", use_container_width=True):
-                    user_data = verify_credentials(user_input, pass_input)
-                    if user_data:
-                        st.session_state.logged_in = True
-                        st.session_state.user_info = user_data
-                        st.success(f"Salut, {user_input}!")
-                        st.rerun()
-                    else:
-                        st.error("Credentiale invalide")
-    else:
-        st.write(f"Conectat ca: **{st.session_state.user_info['username']}**")
-        if st.button("Log Out", use_container_width=True):
-            st.session_state.logged_in = False
-            st.session_state.user_info = None
-            st.rerun()
-    
-    st.divider()
-    st.success("Alege o pagină din meniu pentru a începe explorarea.")
-    st.header("Despre aplicație")
-    st.info(
-        "„Vânătorul de exoplanete AI” folosește date de la misiunile spațiale TESS și Kepler, accesate prin pachetul `lightkurve` și diverse arhive astronomice (MAST, ExoFOP, TIC)."
-    )
-
-# --- PROTECȚIE CONȚINUT ---
-if not st.session_state.logged_in:
-    st.title("Exoplanet Hunter")
-    st.warning("⚠️ Acces restricționat. Vă rugăm să folosiți formularul din bara laterală pentru a vă autentifica.")
-    st.image("https://img.freepik.com/free-vector/access-control-system-abstract-concept_335657-3180.jpg", width=400)
-    st.stop()  # Oprește execuția aici dacă nu este logat
-
-# --- CODUL ORIGINAL (Executat doar după Login) ---
-
-# Inițializare rezultate în Session State
 if 'search_result' not in st.session_state:
     st.session_state.search_result = None
 if 'explore_planets_results' not in st.session_state:
@@ -68,6 +27,9 @@ if 'explore_fps_results' not in st.session_state:
     st.session_state.explore_fps_results = None
 if 'untested_results' not in st.session_state:
     st.session_state.untested_results = None
+
+# Încarcă setările salvate din fișier
+persisted_settings = load_settings()
 
 # Initialize settings in session state
 if 'selected_missions' not in st.session_state:
@@ -81,7 +43,37 @@ if 'sigma_val' not in st.session_state:
 if 'period_range' not in st.session_state:
     st.session_state.period_range = tuple(persisted_settings['period_range'])
 
-# --- Main Page Content ---
+# --- Sidebar Content ---
+with st.sidebar:
+    # SECȚIUNE LOGIN OPȚIONALĂ
+    if not st.session_state.logged_in:
+        with st.expander("🔐 Login (Cont salvat în MySQL)"):
+            with st.form("login_form"):
+                user_in = st.text_input("Username")
+                pass_in = st.text_input("Password", type="password")
+                if st.form_submit_button("Autentificare", use_container_width=True):
+                    user_data = verify_credentials(user_in, pass_in)
+                    if user_data:
+                        st.session_state.logged_in = True
+                        st.session_state.user_info = user_data
+                        st.rerun()
+                    else:
+                        st.error("Date incorecte")
+    else:
+        st.write(f"✅ Logat ca: **{st.session_state.user_info['username']}**")
+        if st.button("Log out"):
+            st.session_state.logged_in = False
+            st.session_state.user_info = None
+            st.rerun()
+
+    st.sidebar.success("Alege o pagină din meniu pentru a începe explorarea.")
+    st.sidebar.divider()
+    st.sidebar.header("Despre aplicație")
+    st.sidebar.info(
+        "„Vânătorul de exoplanete AI” folosește date de la misiunile spațiale TESS și Kepler, accesate prin pachetul `lightkurve` și diverse arhive astronomice (MAST, ExoFOP, TIC). Aplicația descarcă și curăță curbele de lumină ale stelelor și aplică algoritmul Box Least Squares (BLS) pentru a identifica potențiale tranzite planetare. Rezultatele sunt prezentate într-o formă interactivă, ușor de explorat."
+    )
+
+# --- Main Page Content (CONȚINUTUL TĂU ORIGINAL) ---
 st.title("Exoplanet Hunter")
 st.caption("Aplicație interactivă pentru explorarea datelor TESS și Kepler și căutarea de exoplanete prin metoda tranzitului.")
 
@@ -105,6 +97,9 @@ with col1:
         Când o exoplanetă trece prin fața stelei sale, luminozitatea aparentă a stelei scade foarte puțin pentru
         o perioadă scurtă de timp. Dacă aceste scăderi se repetă periodic, ele pot indica prezența unei planete
         care orbitează steaua.
+
+        Această aplicație descarcă curbele de lumină, le curăță și aplică un algoritm de tip **Box Least Squares (BLS)**
+        pentru a găsi astfel de scăderi periodice.
         """
     )
 
@@ -126,13 +121,13 @@ with col2:
         """
         - Începe cu stele bine studiate (Kepler, TOI-uri populare) pentru a vedea cum arată semnalele reale.  
         - Dacă nu apare niciun rezultat, verifică pagina **Setări** – poate intervalul de perioade este prea îngust.  
-        - Ține cont că aceasta este o unealtă *educațională* și *exploratorie*.
+        - Ține cont că aceasta este o unealtă *educațională* și *exploratorie*, nu un pipeline oficial de confirmare a planetelor.
         """
     )
     st.subheader("Despre date")
     st.markdown(
         """
         Datele provin din arhive publice NASA (TESS, Kepler) accesate prin biblioteca `lightkurve` și servicii
-        precum MAST și ExoFOP.
+        precum MAST și ExoFOP. Ai nevoie de conexiune la internet pentru a rula interogările.
         """
     )
