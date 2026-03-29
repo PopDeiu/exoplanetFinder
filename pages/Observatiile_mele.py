@@ -1,6 +1,6 @@
 import streamlit as st
 import pandas as pd
-from utils.database import get_user_observations, delete_observation
+from utils.database import get_user_observations, delete_observation, update_observation_notes
 from utils.ui_styles import set_galaxy_background, set_sidebar_style
 
 st.set_page_config(page_title="Observațiile Mele", layout="wide")
@@ -43,15 +43,34 @@ else:
     # --- Secțiune de Management (Ștergere) ---
     st.divider()
     with st.expander("Administrează observațiile"):
-        obs_to_delete = st.selectbox(
-            "Selectează ID-ul observației pe care vrei să o ștergi:",
-            options=[obs['ID'] for obs in observations],
-            format_func=lambda x: f"ID {x} - {next(item['star_id'] for item in observations if item['ID'] == x)}"
+        obs_id_selected = st.selectbox(
+            "Selectează ID-ul observației pentru modificări:",
+            options=[obs['id'] for obs in observations],
+            format_func=lambda x: f"ID {x} - {next(item['star_id'] for item in observations if item['id'] == x)}"
         )
         
-        if st.button("Șterge definitiv", type="secondary"):
-            if delete_observation(obs_to_delete, user_id):
-                st.success(f"Observația {obs_to_delete} a fost ștearsă.")
-                st.rerun()
-            else:
-                st.error("Nu s-a putut șterge observația.")
+        # Preluăm nota actuală pentru a o pre-completa în editor
+        current_note = next(item['observations'] for item in observations if item['id'] == obs_id_selected)
+
+        # Creăm două coloane pentru butoane
+        col_edit, col_del = st.columns([1, 1])
+
+        with col_edit:
+            # Folosim popover pentru a nu aglomera interfața
+            with st.popover("📝 Editează Notele", use_container_width=True):
+                st.write(f"Modifică observațiile pentru ID {obs_id_selected}")
+                new_notes = st.text_area("Note noi:", value=current_note)
+                if st.button("Salvează Modificările", type="primary"):
+                    if update_observation_notes(obs_id_selected, user_id, new_notes):
+                        st.success("Observație actualizată!")
+                        st.rerun()
+                    else:
+                        st.error("Eroare la actualizare.")
+
+        with col_del:
+            if st.button("🗑️ Șterge definitiv", type="secondary", use_container_width=True):
+                if delete_observation(obs_id_selected, user_id):
+                    st.success(f"Observația {obs_id_selected} a fost ștearsă.")
+                    st.rerun()
+                else:
+                    st.error("Nu s-a putut șterge.")
