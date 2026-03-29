@@ -36,6 +36,6 @@ if st.button("Descarcă candidați la planete", type="primary"):
     if st.session_state.explore_planets_results.empty:
         st.error("Nu s‑au găsit ținte. Este posibil să existe o problemă temporară cu arhiva de date.")
     else:
-        st.markdown(f"#### Sample of Planet Candidates from **{mission_choice_planets}**:")
+        st.markdown(f"#### Eșantion de Candidați la Planete din **{mission_choice_planets}**:")
         st.dataframe(st.session_state.explore_planets_results)
         st.info("Poți copia un „ID căutabil” și îl poți lipi în pagina „Caută o stea”.")

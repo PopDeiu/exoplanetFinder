@@ -45,6 +45,6 @@ if st.button("Descarcă falsii pozitivi", type="primary"):
     if st.session_state.explore_fps_results.empty:
         st.error("Nu s‑au găsit ținte pentru această categorie.")
     else:
-        st.markdown(f"#### Sample of False Positives from **{mission_choice_fps}**:")
+        st.markdown(f"#### Eșantion de False Pozitive din **{mission_choice_fps}**:")
         st.dataframe(st.session_state.explore_fps_results)
         st.info("Poți copia un „ID căutabil” și îl poți lipi în pagina „Caută o stea”.")

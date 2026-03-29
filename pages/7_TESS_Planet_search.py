@@ -29,12 +29,12 @@ with st.expander("🛠️ Filtre Avansate", expanded=True):
     with col1:
         # Definirea opțiunilor complete de stare (Disposition)
         disposition_options = {
-            "CP": "Planetă Confirmată (Confirmed Planet)",
-            "PC": "Candidat (Planet Candidate)",
-            "KP": "Planetă Cunoscută (Known Planet)",
-            "EB": "Binară cu Eclipsă (Eclipsing Binary)",
-            "FP": "Fals Pozitiv (False Positive)",
-            "FA": "Alarmă Falsă (False Alarm)"
+            "CP": "Planetă Confirmată",
+            "PC": "Candidat la Planetă",
+            "KP": "Planetă Cunoscută",
+            "EB": "Binară cu Eclipsă",
+            "FP": "Fals Pozitiv",
+            "FA": "Alarmă Falsă"
         }
 
         dispositions = st.multiselect(
@@ -98,13 +98,13 @@ if st.session_state.toi_search_results is not None:
             df,
             column_config={
                 "TIC ID": st.column_config.TextColumn("ID TIC"),
-                "TOI": st.column_config.NumberColumn("Nume TOI", format="%d"),
+                "TOI": st.column_config.NumberColumn("Obiect de Interes TESS", format="%d"),
                 "TFOPWG Disposition": "Stare",
-                "Planet Radius (R_earth)": st.column_config.NumberColumn("Rază (R⊕)", format="%.2f"),
-                "Orbital Period (days)": st.column_config.NumberColumn("Perioadă (zile)", format="%.3f"),
-                "Planet Temp (K)": st.column_config.NumberColumn("Temp. Planetă", format="%d K"),
-                "Stellar Radius (R_sun)": st.column_config.NumberColumn("Rază Stea", format="%.2f R⊙"),
-                "Stellar Teff (K)": st.column_config.NumberColumn("Temp. Stea", format="%d K"),
+                "Planet Radius (R_earth)": st.column_config.NumberColumn("Rază Planetă (R⊕)", format="%.2f"),
+                "Orbital Period (days)": st.column_config.NumberColumn("Perioadă Orbitală (zile)", format="%.3f"),
+                "Planet Temp (K)": st.column_config.NumberColumn("Temperatura Planetei (K)", format="%d"),
+                "Stellar Radius (R_sun)": st.column_config.NumberColumn("Rază Stea (R⊙)", format="%.2f"),
+                "Stellar Teff (K)": st.column_config.NumberColumn("Temperatura Efectivă Stea (K)", format="%d"),
             },
             use_container_width=True,
             hide_index=True

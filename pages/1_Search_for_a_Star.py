@@ -61,18 +61,18 @@ if st.button("Caută date", type="primary"):
             else:
                 st.warning("Nu s‑au găsit date pentru criteriile specificate.")
 
-
+if st.session_state.search_result is not None:
     st.divider()
     st.subheader("Pasul 2: Selectează datele pentru procesare")
     results_df = st.session_state.search_result.table.to_pandas()
-    link_col_name = "Archive Link"
+    link_col_name = "Link Arhivă"
     if 'TIC ID' in results_df.columns:
         results_df[link_col_name] = "https://exofop.ipac.caltech.edu/tess/target.php?id=" + results_df['TIC ID'].astype(str)
     elif 'KIC ID' in results_df.columns:
         results_df[link_col_name] = "https://exoplanetarchive.ipac.caltech.edu/overview/" + results_df['KIC ID'].astype(str)
-    st.dataframe(results_df, column_config={link_col_name: st.column_config.LinkColumn("Details", display_text="View on Archive ↗️")})
+    st.dataframe(results_df, column_config={link_col_name: st.column_config.LinkColumn("Detalii", display_text="Vezi în Arhivă ↗️")})
     
-    options = [f"Data Product #{i}" for i in range(len(st.session_state.search_result))]
+    options = [f"Produs de Date #{i}" for i in range(len(st.session_state.search_result))]
     selected_options = st.multiselect("Alege ce produse de date vrei să descarci:", options=options, default=options)
     
     if st.button("Procesează fișierele selectate", type="primary"):
@@ -129,7 +129,7 @@ if hasattr(st.session_state, 'pdf_export_data') and st.session_state.pdf_export_
                 use_container_width=True,
                 type="primary"
             )
-
+            
         st.markdown("---")
         st.write("📢 **Înregistrează-ti observatiile in bazele de date NASA**")
         st.link_button("Accesează NASA ExoFOP (TESS)", "https://exofop.ipac.caltech.edu/tess/", use_container_width=True)

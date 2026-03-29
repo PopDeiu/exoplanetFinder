@@ -195,7 +195,7 @@ if data:
                 default_survey = "DSS2 IR"
 
             survey = st.selectbox(
-                "Survey",
+                "Sondaj Astronomic",
                 survey_options,
                 index=survey_options.index(default_survey),
                 help="Alege survey-ul (optical, IR, UV etc.).",
@@ -203,7 +203,7 @@ if data:
 
             # Contrast
             vmin_pct, vmax_pct = st.slider(
-                "Contrast (percentile)",
+                "Contrast (Percentilă)",
                 0,
                 100,
                 (1, 99),
@@ -212,7 +212,7 @@ if data:
 
             # Inversare culori
             invert_colors = st.checkbox(
-                "Inversează culorile (negative)",
+                "Inversează culorile (imagine negativă)",
                 value=False,
                 help="Util pentru evidențierea detaliilor.",
             )

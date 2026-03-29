@@ -89,7 +89,7 @@ with st.sidebar:
         # Folosesc 'username' în loc de 'user' deoarece așa este de obicei în DB
         username_display = st.session_state.user_info.get('user', 'Utilizator')
         st.write(f"✅ Logat ca: **{username_display}**")
-        if st.button("Log out", use_container_width=True):
+        if st.button("Deconectare", use_container_width=True):
             st.session_state.logged_in = False
             st.session_state.user_info = None
             if 'user_id' in cookies:
@@ -105,7 +105,7 @@ with st.sidebar:
     )
 
 # --- Main Page Content (CONȚINUTUL TĂU ORIGINAL) ---
-st.title("Exoplanet Hunter")
+st.title("Vânătorul de Exoplanete")
 st.caption("Aplicație interactivă pentru explorarea datelor TESS și Kepler și căutarea de exoplanete prin metoda tranzitului.")
 
 col1, col2 = st.columns([2, 1])
