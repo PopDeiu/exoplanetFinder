@@ -10,7 +10,13 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded"
 )
+# --- Asigură-te că variabilele de sesiune există ---
+if 'search_result' not in st.session_state:
+    st.session_state.search_result = None
 
+# (Opțional) Dacă folosești și alte variabile care dau erori similare:
+if 'logged_in' not in st.session_state:
+    st.session_state.logged_in = False
 # --- Aplicare styling IMEDIAT ---
 set_sidebar_style()
 set_galaxy_background("nebula")
