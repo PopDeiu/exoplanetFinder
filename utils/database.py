@@ -21,6 +21,26 @@ def get_connection():
     except mysql.connector.Error as err:
         st.error(f"Eroare de conectare la DB: {err}")
         return None
+    
+def register_user(username, password):
+    conn = get_connection()
+    if conn:
+        try:
+            cursor = conn.cursor(dictionary=True)
+            # Verificăm dacă user-ul există deja
+            cursor.execute("SELECT * FROM users WHERE user = %s", (username,))
+            if cursor.fetchone():
+                return False, "Utilizatorul există deja!"
+            
+            # Insert noul user
+            sql = "INSERT INTO users (username, password) VALUES (%s, %s)"
+            cursor.execute(sql, (username, password))
+            conn.commit()
+            cursor.close()
+            return True, "Cont creat cu succes!"
+        except Exception as e:
+            return False, f"Eroare: {e}"
+    return False, "Nu s-a putut conecta la DB"
 
 def verify_credentials(username, password):
     """Verifică user-ul și parola în baza de date."""

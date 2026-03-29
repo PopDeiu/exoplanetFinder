@@ -1,7 +1,7 @@
 import streamlit as st
 from utils.ui_styles import set_galaxy_background, set_sidebar_style
 from utils.settings_manager import load_settings
-from utils.database import verify_credentials # Funcția creată anterior în utils
+from utils.database import verify_credentials, register_user # Funcția creată anterior în utils
 
 st.set_page_config(
     page_title="Vânătorul de exoplanete AI",
@@ -60,23 +60,48 @@ if 'period_range' not in st.session_state:
 
 # --- Sidebar Content ---
 with st.sidebar:
-    # SECȚIUNE LOGIN OPȚIONALĂ
     if not st.session_state.logged_in:
-        with st.expander("🔐 Login (optional)"):
+        # Alegem ce vrem să facem: Login sau Cont Nou
+        menu = st.radio("Navigare Cont", ["Login", "Înregistrare"], horizontal=True)
+        
+        if menu == "Login":
             with st.form("login_form"):
+                st.subheader("Autentificare")
                 user_in = st.text_input("Username")
                 pass_in = st.text_input("Password", type="password")
-                if st.form_submit_button("Autentificare", use_container_width=True):
+                if st.form_submit_button("Log In", use_container_width=True):
                     user_data = verify_credentials(user_in, pass_in)
                     if user_data:
                         st.session_state.logged_in = True
                         st.session_state.user_info = user_data
+                        st.success(f"Salut, {user_in}!")
                         st.rerun()
                     else:
-                        st.error("Date incorecte")
+                        st.error("Credentiale incorecte")
+        
+        else: # Secțiunea de Înregistrare
+            with st.form("register_form"):
+                st.subheader("Creare Cont Nou")
+                new_user = st.text_input("Alege Username")
+                new_pass = st.text_input("Alege Parolă", type="password")
+                confirm_pass = st.text_input("Confirmă Parolă", type="password")
+                
+                if st.form_submit_button("Înregistrează-te", use_container_width=True):
+                    if new_pass != confirm_pass:
+                        st.error("Parolele nu coincid!")
+                    elif len(new_user) < 3:
+                        st.error("Username-ul este prea scurt!")
+                    else:
+                        success, message = register_user(new_user, new_pass)
+                        if success:
+                            st.success(message)
+                            st.info("Acum te poți loga din meniul de Login.")
+                        else:
+                            st.error(message)
     else:
-        st.write(f"✅ Logat ca: **{st.session_state.user_info['user']}**")
-        if st.button("Log out"):
+        # Afișare când este logat
+        st.write(f"✅ Logat ca: **{st.session_state.user_info['username']}**")
+        if st.button("Log out", use_container_width=True):
             st.session_state.logged_in = False
             st.session_state.user_info = None
             st.rerun()
