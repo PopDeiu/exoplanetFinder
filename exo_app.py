@@ -100,7 +100,7 @@ with st.sidebar:
                             st.error(message)
     else:
         # Afișare când este logat
-        st.write(f"✅ Logat ca: **{st.session_state.user_info['username']}**")
+        st.write(f"✅ Logat ca: **{st.session_state.user_info['user']}**")
         if st.button("Log out", use_container_width=True):
             st.session_state.logged_in = False
             st.session_state.user_info = None
