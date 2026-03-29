@@ -29,7 +29,7 @@ def verify_credentials(username, password):
         try:
             cursor = conn.cursor(dictionary=True)
             # Folosim interogare parametrizată pentru a preveni SQL Injection
-            sql = "SELECT * FROM users WHERE username = %s AND password = %s"
+            sql = "SELECT * FROM users WHERE user = %s AND password = %s"
             cursor.execute(sql, (username, password))
             result = cursor.fetchone()
             cursor.close()
