@@ -96,6 +96,19 @@ def delete_observation(obs_id, user_id):
             return False
     return False
 
+def get_user_by_id(user_id):
+    conn = get_connection()
+    if conn:
+        try:
+            cursor = conn.cursor(dictionary=True)
+            cursor.execute("SELECT ID, user FROM users WHERE ID = %s", (user_id,))
+            user = cursor.fetchone()
+            cursor.close()
+            return user
+        except Exception as e:
+            print(f"Eroare la preluarea userului: {e}")
+    return None
+
 def verify_credentials(username, password):
     """Verifică user-ul și parola în baza de date."""
     conn = get_connection()
