@@ -32,7 +32,7 @@ if st.button("Descarcă candidați la planete", type="primary"):
     with st.spinner(f"Se descarcă catalogul {mission_choice_planets}... (se actualizează zilnic)"):
         st.session_state.explore_planets_results = fetch_catalog_targets(mission_choice_planets, disposition_type="PLANETS")
 
-if st.session_state.explore_planets_results is not None:
+
     if st.session_state.explore_planets_results.empty:
         st.error("Nu s‑au găsit ținte. Este posibil să existe o problemă temporară cu arhiva de date.")
     else:

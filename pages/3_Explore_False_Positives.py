@@ -41,7 +41,7 @@ if st.button("Descarcă falsii pozitivi", type="primary"):
     with st.spinner(f"Se descarcă catalogul {mission_choice_fps}... (se actualizează zilnic)"):
         st.session_state.explore_fps_results = fetch_catalog_targets(mission_choice_fps, disposition_type="FALSE_POSITIVES")
 
-if st.session_state.explore_fps_results is not None:
+
     if st.session_state.explore_fps_results.empty:
         st.error("Nu s‑au găsit ținte pentru această categorie.")
     else:
