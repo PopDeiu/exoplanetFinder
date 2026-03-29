@@ -61,7 +61,7 @@ if st.button("Caută date", type="primary"):
             else:
                 st.warning("Nu s‑au găsit date pentru criteriile specificate.")
 
-if st.session_state.search_result is not None:
+
     st.divider()
     st.subheader("Pasul 2: Selectează datele pentru procesare")
     results_df = st.session_state.search_result.table.to_pandas()
@@ -129,7 +129,7 @@ if hasattr(st.session_state, 'pdf_export_data') and st.session_state.pdf_export_
                 use_container_width=True,
                 type="primary"
             )
-            
+
         st.markdown("---")
         st.write("📢 **Înregistrează-ti observatiile in bazele de date NASA**")
         st.link_button("Accesează NASA ExoFOP (TESS)", "https://exofop.ipac.caltech.edu/tess/", use_container_width=True)
