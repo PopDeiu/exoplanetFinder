@@ -15,7 +15,7 @@ if not st.session_state.get('logged_in', False):
     st.warning("Te rugăm să te autentifici din pagina principală pentru a vedea observațiile salvate.")
     st.stop()
 
-user_id = st.session_state.user_info['id']
+user_id = st.session_state.user_info['ID']
 observations = get_user_observations(user_id)
 
 if not observations:
@@ -45,8 +45,8 @@ else:
     with st.expander("Administrează observațiile"):
         obs_to_delete = st.selectbox(
             "Selectează ID-ul observației pe care vrei să o ștergi:",
-            options=[obs['id'] for obs in observations],
-            format_func=lambda x: f"ID {x} - {next(item['star_id'] for item in observations if item['id'] == x)}"
+            options=[obs['ID'] for obs in observations],
+            format_func=lambda x: f"ID {x} - {next(item['star_id'] for item in observations if item['ID'] == x)}"
         )
         
         if st.button("Șterge definitiv", type="secondary"):
