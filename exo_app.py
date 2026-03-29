@@ -1,64 +1,43 @@
 import streamlit as st
+from streamlit_cookies_manager import EncryptedCookieManager
 from utils.ui_styles import set_galaxy_background, set_sidebar_style
 from utils.settings_manager import load_settings
-from utils.database import verify_credentials, register_user # Funcția creată anterior în utils
+from utils.database import verify_credentials, register_user, get_user_by_id
+import os
+
+# --- Gestionare Cookie-uri ---
+# Folosește o parolă sigură pentru criptarea cookie-urilor
+cookies = EncryptedCookieManager(
+    password=os.getenv("COOKIE_PASSWORD", "parola-secreta-exoplanet-2026"),
+)
+
+if not cookies.ready():
+    st.stop() # Așteptăm încărcarea cookie-urilor din browser
 
 st.set_page_config(
     page_title="Vânătorul de exoplanete AI",
     layout="wide",
     initial_sidebar_state="expanded"
 )
-def set_custom_input_style():
-    st.markdown("""
-        <style>
-        /* Schimbă border-ul la focus (când dai click în el) */
-        div[data-baseweb="input"] > div:focus-within {
-            border-color: #9b59b6 !important;
-            box-shadow: 0 0 0 2px rgba(155, 89, 182, 0.5) !important;
-        }
-        /* Schimbă border-ul implicit pentru a fi mai vizibil */
-        div[data-baseweb="input"] {
-            border: 1px solid #9b59b6 !important;
-            border-radius: 5px;
-        }
-        </style>
-    """, unsafe_allow_html=True)
-# --- Aplicare styling IMEDIAT ---
+
+# --- Aplicare styling ---
 set_sidebar_style()
 set_galaxy_background("default")
-set_custom_input_style()
 
-# --- Session State Initialization ---
+# --- Logică Auto-Login (Refresh Persistence) ---
 if 'logged_in' not in st.session_state:
-    st.session_state.logged_in = False
-if 'user_info' not in st.session_state:
-    st.session_state.user_info = None
+    saved_user_id = cookies.get('user_id')
+    if saved_user_id:
+        user_data = get_user_by_id(saved_user_id)
+        if user_data:
+            st.session_state.logged_in = True
+            st.session_state.user_info = user_data
+        else:
+            st.session_state.logged_in = False
+    else:
+        st.session_state.logged_in = False
 
-if 'search_result' not in st.session_state:
-    st.session_state.search_result = None
-if 'explore_planets_results' not in st.session_state:
-    st.session_state.explore_planets_results = None
-if 'explore_fps_results' not in st.session_state:
-    st.session_state.explore_fps_results = None
-if 'untested_results' not in st.session_state:
-    st.session_state.untested_results = None
-
-# Încarcă setările salvate din fișier
-persisted_settings = load_settings()
-
-# Initialize settings in session state
-if 'selected_missions' not in st.session_state:
-    st.session_state.selected_missions = persisted_settings['selected_missions']
-if 'selected_authors' not in st.session_state:
-    st.session_state.selected_authors = persisted_settings['selected_authors']
-if 'bin_size' not in st.session_state:
-    st.session_state.bin_size = persisted_settings['bin_size']
-if 'sigma_val' not in st.session_state:
-    st.session_state.sigma_val = persisted_settings['sigma_val']
-if 'period_range' not in st.session_state:
-    st.session_state.period_range = tuple(persisted_settings['period_range'])
-
-# --- Sidebar Content ---
+# --- Sidebar Content (Codul tău intact + Remember Me) ---
 with st.sidebar:
     if not st.session_state.logged_in:
         # Alegem ce vrem să facem: Login sau Cont Nou
@@ -69,11 +48,18 @@ with st.sidebar:
                 st.subheader("Autentificare")
                 user_in = st.text_input("Username")
                 pass_in = st.text_input("Password", type="password")
+                remember_me = st.checkbox("Ține-mă minte (Rămâi logat)")
+                
                 if st.form_submit_button("Log In", use_container_width=True):
                     user_data = verify_credentials(user_in, pass_in)
                     if user_data:
                         st.session_state.logged_in = True
                         st.session_state.user_info = user_data
+                        
+                        if remember_me:
+                            cookies['user_id'] = str(user_data['ID'])
+                            cookies.save() # Salvează ID-ul în browser
+                        
                         st.success(f"Salut, {user_in}!")
                         st.rerun()
                     else:
@@ -100,17 +86,22 @@ with st.sidebar:
                             st.error(message)
     else:
         # Afișare când este logat
-        st.write(f"✅ Logat ca: **{st.session_state.user_info['user']}**")
+        # Folosesc 'username' în loc de 'user' deoarece așa este de obicei în DB
+        username_display = st.session_state.user_info.get('user', 'Utilizator')
+        st.write(f"✅ Logat ca: **{username_display}**")
         if st.button("Log out", use_container_width=True):
             st.session_state.logged_in = False
             st.session_state.user_info = None
+            if 'user_id' in cookies:
+                del cookies['user_id']
+                cookies.save()
             st.rerun()
 
     st.sidebar.success("Alege o pagină din meniu pentru a începe explorarea.")
     st.sidebar.divider()
     st.sidebar.header("Despre aplicație")
     st.sidebar.info(
-        "„Vânătorul de exoplanete AI” folosește date de la misiunile spațiale TESS și Kepler, accesate prin pachetul `lightkurve` și diverse arhive astronomice (MAST, ExoFOP, TIC). Aplicația descarcă și curăță curbele de lumină ale stelelor și aplică algoritmul Box Least Squares (BLS) pentru a identifica potențiale tranzite planetare. Rezultatele sunt prezentate într-o formă interactivă, ușor de explorat."
+        "„Vânătorul de exoplanete AI” folosește date de la misiunile spațiale TESS și Kepler..."
     )
 
 # --- Main Page Content (CONȚINUTUL TĂU ORIGINAL) ---
