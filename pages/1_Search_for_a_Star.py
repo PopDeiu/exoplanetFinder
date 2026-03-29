@@ -129,6 +129,10 @@ if hasattr(st.session_state, 'pdf_export_data') and st.session_state.pdf_export_
                 use_container_width=True,
                 type="primary"
             )
+            
+        st.markdown("---")
+        st.write("📢 **Înregistrează-ti observatiile in bazele de date NASA**")
+        st.link_button("Accesează NASA ExoFOP (TESS)", "https://exofop.ipac.caltech.edu/tess/", use_container_width=True)
 
         # --- SECȚIUNE SALVARE ÎN CONT ---
         with col_save:
