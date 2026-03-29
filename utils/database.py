@@ -80,6 +80,21 @@ def get_user_observations(user_id):
             return []
     return []
 
+def update_observation_notes(obs_id, user_id, new_notes):
+    conn = get_connection()
+    if conn:
+        try:
+            cursor = conn.cursor()
+            query = "UPDATE saved_observations SET observations = %s WHERE ID = %s AND user_id = %s"
+            cursor.execute(query, (new_notes, obs_id, user_id))
+            conn.commit()
+            cursor.close()
+            return True
+        except Exception as e:
+            print(f"Eroare la update: {e}")
+            return False
+    return False
+
 def delete_observation(obs_id, user_id):
     conn = get_connection()
     if conn:
