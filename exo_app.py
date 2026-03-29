@@ -75,7 +75,7 @@ with st.sidebar:
                     else:
                         st.error("Date incorecte")
     else:
-        st.write(f"✅ Logat ca: **{st.session_state.user_info['username']}**")
+        st.write(f"✅ Logat ca: **{st.session_state.user_info['user']}**")
         if st.button("Log out"):
             st.session_state.logged_in = False
             st.session_state.user_info = None
