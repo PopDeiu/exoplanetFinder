@@ -11,3 +11,4 @@ reportlab
 pillow
 dotenv
 mysql.connector
+mysql-connector-python[plugins]
