@@ -33,7 +33,7 @@ def register_user(username, password):
                 return False, "Utilizatorul există deja!"
             
             # Insert noul user
-            sql = "INSERT INTO users (users, password) VALUES (%s, %s)"
+            sql = "INSERT INTO users (user, password) VALUES (%s, %s)"
             cursor.execute(sql, (username, password))
             conn.commit()
             cursor.close()
