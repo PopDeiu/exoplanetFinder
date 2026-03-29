@@ -12,3 +12,4 @@ pillow
 dotenv
 mysql.connector
 mysql-connector-python[plugins]
+streamlit-cookies-manager
