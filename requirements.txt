@@ -9,3 +9,5 @@ plotly>=5.0.0
 streamlit-plotly-events
 reportlab
 pillow
+dotenv
+mysql.connector
