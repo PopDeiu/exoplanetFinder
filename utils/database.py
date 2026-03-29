@@ -64,6 +64,38 @@ def save_star_observation(user_id, star_id, period, depth, radius, obs_text):
             return False
     return False
 
+def get_user_observations(user_id):
+    conn = get_connection()
+    if conn:
+        try:
+            cursor = conn.cursor(dictionary=True)
+            # Ordonăm după data creării (cele mai noi primele)
+            query = "SELECT ID, star_id, period, depth, radius, observations, created_at FROM saved_observations WHERE user_id = %s ORDER BY created_at DESC"
+            cursor.execute(query, (user_id,))
+            results = cursor.fetchall()
+            cursor.close()
+            return results
+        except Exception as e:
+            print(f"Eroare la citire: {e}")
+            return []
+    return []
+
+def delete_observation(obs_id, user_id):
+    conn = get_connection()
+    if conn:
+        try:
+            cursor = conn.cursor()
+            # Verificăm user_id pentru siguranță (să nu poată șterge cineva observația altcuiva prin ID)
+            query = "DELETE FROM saved_observations WHERE ID = %s AND user_id = %s"
+            cursor.execute(query, (obs_id, user_id))
+            conn.commit()
+            cursor.close()
+            return True
+        except Exception as e:
+            print(f"Eroare la ștergere: {e}")
+            return False
+    return False
+
 def verify_credentials(username, password):
     """Verifică user-ul și parola în baza de date."""
     conn = get_connection()
