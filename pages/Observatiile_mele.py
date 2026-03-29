@@ -45,12 +45,12 @@ else:
     with st.expander("Administrează observațiile"):
         obs_id_selected = st.selectbox(
             "Selectează ID-ul observației pentru modificări:",
-            options=[obs['id'] for obs in observations],
-            format_func=lambda x: f"ID {x} - {next(item['star_id'] for item in observations if item['id'] == x)}"
+            options=[obs['ID'] for obs in observations],
+            format_func=lambda x: f"ID {x} - {next(item['star_id'] for item in observations if item['ID'] == x)}"
         )
         
         # Preluăm nota actuală pentru a o pre-completa în editor
-        current_note = next(item['observations'] for item in observations if item['id'] == obs_id_selected)
+        current_note = next(item['observations'] for item in observations if item['ID'] == obs_id_selected)
 
         # Creăm două coloane pentru butoane
         col_edit, col_del = st.columns([1, 1])
