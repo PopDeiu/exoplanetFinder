@@ -47,7 +47,7 @@ if 'period_range' not in st.session_state:
 with st.sidebar:
     # SECȚIUNE LOGIN OPȚIONALĂ
     if not st.session_state.logged_in:
-        with st.expander("🔐 Login (Cont salvat în MySQL)"):
+        with st.expander("🔐 Login (optional)"):
             with st.form("login_form"):
                 user_in = st.text_input("Username")
                 pass_in = st.text_input("Password", type="password")
