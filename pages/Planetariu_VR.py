@@ -32,7 +32,9 @@ if st.button("Sincronizează cu Baza de Date", type="primary", use_container_wid
             
             if insert_success:
                 st.success(f"✅ Succes! Am șters datele vechi și am salvat {len(stars_to_save)} stele noi pentru Bortle {bortle_scale}.")
+                st.toast('Salvat', icon='✅')
                 st.balloons()
+
             else:
                 st.error("Eroare la salvarea noilor stele în baza de date.")
         else:
