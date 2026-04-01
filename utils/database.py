@@ -2,6 +2,9 @@ import mysql.connector
 import os
 import streamlit as st
 from dotenv import load_dotenv
+import pandas as pd
+from astroquery.mast import Catalogs
+
 
 # Încărcăm variabilele de mediu
 load_dotenv()
@@ -218,26 +221,72 @@ def bulk_save_stars(stars_list):
             return False
     return False
 
-def get_stars_by_bortle_mock(bortle_level):
+
+
+
+def get_real_stars_by_bortle(bortle_level, limit=1000):
     """
-    SIMULARE: NASA / Cataloage Stelare.
-    Aici ar trebui integrat un API real (ex: astroquery cu catalogul Hipparcos).
-    Momentan generăm date de test bazate pe magnitudine pentru a nu bloca serverul.
+    Folosește astroquery (TIC) pentru a aduce stele vizibile la un anumit nivel Bortle.
+    Limităm la 100-200 pentru a nu bloca baza de date sau memoria, dar le luăm pe cele mai strălucitoare.
     """
-    # Mapăm Bortle la numărul aproximativ de stele vizibile (pentru simulare)
-    # În realitate, aici faci un query: "SELECT * FROM catalog WHERE magnitude < limit"
-    limits = {1: 3000, 2: 2000, 3: 1500, 4: 800, 5: 400, 6: 200, 7: 100, 8: 50, 9: 20}
     
-    num_stars = limits.get(bortle_level, 50)
-    stars_data = []
+    # Mapăm nivelul Bortle la magnitudinea vizuală (Vmag) aproximativă
+    # Valori conservative pentru ochiul liber
+    bortle_vmag_limits = {
+        1: 7.5, 2: 7.0, 3: 6.5, 4: 6.0, 
+        5: 5.5, 6: 5.0, 7: 4.5, 8: 4.0, 9: 3.0
+    }
     
-    for i in range(1, num_stars + 1):
-        stars_data.append((
-            f"TIC {100000 + i}", 
-            f"Stea Bortle {bortle_level} #{i}", 
-            f"{10 + (i%14)}h {i%60}m", 
-            f"+{i%90}°", 
-            f"Generată automat pentru Bortle {bortle_level}"
-        ))
+    max_vmag = bortle_vmag_limits.get(bortle_level, 4.0)
+    
+    try:
+        # Interogăm MAST / TIC. 
+        # Cerem stele care au Vmag mai mic (mai luminos) decât limita noastră.
+        # Pentru a nu aduce zeci de mii, setăm o limită prin `pagesize` și ordonăm după magnitudine.
+        # Coordonatele ra/dec nu le restricționăm aici (luăm de peste tot), dar putem face un box search dacă dorim.
         
-    return stars_data
+        # Interogarea Catalogului TIC. Nu cerem o zonă anume (ra, dec goale pentru tot cerul, dar MAST limitează default)
+        # Atenție: Interogarea întregului cer e lentă, așa că facem o constrângere simplă
+        
+        query_data = Catalogs.query_criteria(
+            catalog="TIC", 
+            Vmag=(-2.0, max_vmag), # De la Sirius (-1.46) până la limita vizibilității noastre
+            pagesize=limit
+        ).to_pandas()
+        
+        if query_data.empty:
+            return []
+
+        stars_list = []
+        
+        for index, row in query_data.iterrows():
+            tic_id = f"TIC {row['ID']}"
+            
+            # TIC nu ne dă mereu "numele clasic" (ex: Sirius), ci id-ul TIC.
+            # Pentru a păstra interogarea rapidă (să nu facem sute de apeluri SIMBAD), folosim TIC_ID ca nume principal.
+            name = f"Stea Vmag: {round(row['Vmag'], 2)}" 
+            
+            # Formatăm RA și DEC frumos (vin ca grade zecimale din query)
+            ra_deg = float(row['ra'])
+            dec_deg = float(row['dec'])
+            
+            # O transformare foarte simplă în string pentru display
+            ra_str = f"{ra_deg:.2f}°"
+            dec_str = f"{dec_deg:.2f}°"
+            
+            desc = f"Descărcată automat via MAST (TIC). Nivel Bortle setat: {bortle_level}."
+
+            # Adăugăm în formatul cerut de funcția bulk_save_stars din DB
+            stars_list.append((
+                tic_id,
+                name,
+                ra_str,
+                dec_str,
+                desc
+            ))
+            
+        return stars_list
+
+    except Exception as e:
+        print(f"Eroare la descărcarea stelelor din MAST: {e}")
+        return []
