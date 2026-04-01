@@ -139,3 +139,39 @@ def verify_credentials(username, password):
         except mysql.connector.Error as err:
             st.error(f"Eroare la query: {err}")
     return None
+
+
+
+def save_naked_eye_star(tic_id, name, ra, dec, description):
+    """Salvează o stea vizibilă cu ochiul liber în DB."""
+    conn = get_connection()
+    if conn:
+        try:
+            cursor = conn.cursor()
+            sql = """INSERT INTO stele (TIC_ID, name, ra, declination, description) 
+                     VALUES (%s, %s, %s, %s, %s)"""
+            values = (tic_id, name, ra, dec, description)
+            cursor.execute(sql, values)
+            conn.commit()
+            cursor.close()
+            return True
+        except Exception as e:
+            print(f"Eroare SQL la salvarea stelei: {e}")
+            return False
+    return False
+
+
+def get_all_naked_eye_stars():
+    """Returnează toate stelele salvate din DB."""
+    conn = get_connection()
+    if conn:
+        try:
+            cursor = conn.cursor(dictionary=True)
+            cursor.execute("SELECT ID, TIC_ID, name, ra, declination, description FROM stele ORDER BY ID DESC")
+            results = cursor.fetchall()
+            cursor.close()
+            return results
+        except Exception as e:
+            print(f"Eroare la citirea stelelor: {e}")
+            return []
+    return []
