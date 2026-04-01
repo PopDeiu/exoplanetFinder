@@ -1,5 +1,5 @@
 import streamlit as st
-from utils.database import clear_all_naked_eye_stars, bulk_save_stars, get_stars_by_bortle_mock
+from utils.database import clear_all_naked_eye_stars, bulk_save_stars, get_real_stars_by_bortle
 from utils.ui_styles import set_galaxy_background, set_sidebar_style
 
 st.set_page_config(page_title="Planetariu VR")
@@ -21,7 +21,7 @@ if st.button("Sincronizează cu Baza de Date", type="primary", use_container_wid
     with st.spinner(f"Aducem stelele pentru Bortle {bortle_scale}..."):
         
         # 1. Obținem stelele (aici folosești funcția mock, sau un API real pe viitor)
-        stars_to_save = get_stars_by_bortle_mock(bortle_scale)
+        stars_to_save = get_real_stars_by_bortle(bortle_scale)
         
         # 2. Ștergem datele vechi din DB
         clear_success = clear_all_naked_eye_stars()
