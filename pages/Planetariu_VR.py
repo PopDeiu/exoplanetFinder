@@ -29,7 +29,7 @@ with st.form("star_form", clear_on_submit=True):
         
     # Pre-completăm text_area cu nivelul Bortle ca să fie salvat în DB în coloana description
 
-    description = st.text_area("Descriere / Note observație", height=100, placeholder="Observat la Bortle {bortle_scale}")
+    description = st.text_area("Descriere / Note observație", height=100, placeholder=f"Observat la Bortle {bortle_scale}")
     
     submit_button = st.form_submit_button("Salvează Observația")
 
