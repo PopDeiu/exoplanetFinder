@@ -1,5 +1,5 @@
 import streamlit as st
-from utils import clear_all_naked_eye_stars, bulk_save_stars, get_stars_by_bortle_mock
+from utils.database import clear_all_naked_eye_stars, bulk_save_stars, get_stars_by_bortle_mock
 from utils.ui_styles import set_galaxy_background, set_sidebar_style
 
 st.set_page_config(page_title="Planetariu VR")
