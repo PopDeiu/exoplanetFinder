@@ -1,6 +1,7 @@
 import streamlit as st
 # Asigură-te că imporți funcțiile din fișierul tău utils.py
-from utils import save_naked_eye_star, get_all_naked_eye_stars
+
+from utils.database import save_naked_eye_star, get_all_naked_eye_stars
 
 st.set_page_config(page_title="Observații Ochiul Liber", page_icon="✨")
 
