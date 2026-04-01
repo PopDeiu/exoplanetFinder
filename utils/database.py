@@ -175,3 +175,62 @@ def get_all_naked_eye_stars():
             print(f"Eroare la citirea stelelor: {e}")
             return []
     return []
+
+
+
+def clear_all_naked_eye_stars():
+    """Șterge toate înregistrările vechi din tabelul stele."""
+    conn = get_connection()
+    if conn:
+        try:
+            cursor = conn.cursor()
+            cursor.execute("TRUNCATE TABLE stele") # Truncate e mult mai rapid decât DELETE pentru tot tabelul
+            conn.commit()
+            cursor.close()
+            return True
+        except Exception as e:
+            print(f"Eroare la ștergerea stelelor: {e}")
+            return False
+    return False
+
+def bulk_save_stars(stars_list):
+    """Salvează o listă de stele rapid în baza de date."""
+    conn = get_connection()
+    if conn:
+        try:
+            cursor = conn.cursor()
+            sql = """INSERT INTO stele (TIC_ID, name, ra, declination, description) 
+                     VALUES (%s, %s, %s, %s, %s)"""
+            # Folosim executemany pentru a insera mii de rânduri instantaneu
+            cursor.executemany(sql, stars_list)
+            conn.commit()
+            cursor.close()
+            return True
+        except Exception as e:
+            print(f"Eroare la bulk insert: {e}")
+            return False
+    return False
+
+def get_stars_by_bortle_mock(bortle_level):
+    """
+    SIMULARE: NASA / Cataloage Stelare.
+    Aici ar trebui integrat un API real (ex: astroquery cu catalogul Hipparcos).
+    Momentan generăm date de test bazate pe magnitudine pentru a nu bloca serverul.
+    """
+    # Mapăm Bortle la numărul aproximativ de stele vizibile (pentru simulare)
+    # În realitate, aici faci un query: "SELECT * FROM catalog WHERE magnitude < limit"
+    limits = {1: 3000, 2: 2000, 3: 1500, 4: 800, 5: 400, 6: 200, 7: 100, 8: 50, 9: 20}
+    
+    num_stars = limits.get(bortle_level, 50)
+    stars_data = []
+    
+    for i in range(1, num_stars + 1):
+        stars_data.append((
+            f"TIC {100000 + i}", 
+            f"Stea Bortle {bortle_level} #{i}", 
+            f"{10 + (i%14)}h {i%60}m", 
+            f"+{i%90}°", 
+            f"Generată automat pentru Bortle {bortle_level}"
+        ))
+        
+    return stars_data
