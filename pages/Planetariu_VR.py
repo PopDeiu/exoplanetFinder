@@ -13,7 +13,7 @@ with st.sidebar:
     st.header("Condiții de Observare")
     bortle_scale = st.slider("Scara Bortle (1 = Cer perfect, 9 = Centru oraș)", 1, 9, 4)
     st.info(f"Setat la: **Bortle {bortle_scale}**")
-    st.markdown("_Sfat: Vom adăuga automat nivelul Bortle în descrierea observației tale pentru context._")
+    
 
 # --- FORMULAR ADĂUGARE ---
 with st.form("star_form", clear_on_submit=True):
@@ -28,8 +28,8 @@ with st.form("star_form", clear_on_submit=True):
         dec = st.text_input("Declinație (DEC) *", placeholder="ex: +38° 47'")
         
     # Pre-completăm text_area cu nivelul Bortle ca să fie salvat în DB în coloana description
-    default_desc = f"[Observat la Bortle {bortle_scale}]\n"
-    description = st.text_area("Descriere / Note observație", value=default_desc, height=100)
+    default_desc = f"[placeholder=Observat la Bortle {bortle_scale}]\n"
+    description = st.text_area("Descriere / Note observație", value=default_desc, height=100, placeholder=f"Observat la Bortle {bortle_scale}")
     
     submit_button = st.form_submit_button("Salvează Observația")
 
