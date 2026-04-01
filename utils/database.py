@@ -148,7 +148,7 @@ def save_naked_eye_star(tic_id, name, ra, dec, description):
     if conn:
         try:
             cursor = conn.cursor()
-            sql = """INSERT INTO stele (TIC_ID, name, ra, declination, description) 
+            sql = """INSERT INTO stars (TIC_ID, name, ra, declination, description) 
                      VALUES (%s, %s, %s, %s, %s)"""
             values = (tic_id, name, ra, dec, description)
             cursor.execute(sql, values)
@@ -167,7 +167,7 @@ def get_all_naked_eye_stars():
     if conn:
         try:
             cursor = conn.cursor(dictionary=True)
-            cursor.execute("SELECT ID, TIC_ID, name, ra, declination, description FROM stele ORDER BY ID DESC")
+            cursor.execute("SELECT ID, TIC_ID, name, ra, declination, description FROM stars ORDER BY ID DESC")
             results = cursor.fetchall()
             cursor.close()
             return results
@@ -185,10 +185,10 @@ def clear_all_naked_eye_stars():
         try:
             cursor = conn.cursor()
            
-            cursor.execute("DELETE FROM stele") 
+            cursor.execute("DELETE FROM stars") 
             
            
-            cursor.execute("ALTER TABLE stele AUTO_INCREMENT = 1")
+            cursor.execute("ALTER TABLE stars AUTO_INCREMENT = 1")
             
             conn.commit()
             cursor.close()
@@ -206,7 +206,7 @@ def bulk_save_stars(stars_list):
     if conn:
         try:
             cursor = conn.cursor()
-            sql = """INSERT INTO stele (TIC_ID, name, ra, declination, description) 
+            sql = """INSERT INTO stars (TIC_ID, name, ra, declination, description) 
                      VALUES (%s, %s, %s, %s, %s)"""
             # Folosim executemany pentru a insera mii de rânduri instantaneu
             cursor.executemany(sql, stars_list)
