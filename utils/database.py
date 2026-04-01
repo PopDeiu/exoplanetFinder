@@ -184,12 +184,19 @@ def clear_all_naked_eye_stars():
     if conn:
         try:
             cursor = conn.cursor()
-            cursor.execute("TRUNCATE TABLE stele") # Truncate e mult mai rapid decât DELETE pentru tot tabelul
+           
+            cursor.execute("DELETE FROM stele") 
+            
+           
+            cursor.execute("ALTER TABLE stele AUTO_INCREMENT = 1")
+            
             conn.commit()
             cursor.close()
             return True
         except Exception as e:
-            print(f"Eroare la ștergerea stelelor: {e}")
+            # Afișăm eroarea exactă direct în interfața Streamlit ca să știm ce se întâmplă
+            import streamlit as st
+            st.error(f"Eroare SQL detaliată la ștergere: {e}")
             return False
     return False
 
