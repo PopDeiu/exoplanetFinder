@@ -7,7 +7,7 @@ services:
     restart: unless-stopped
     ports:
       - "8501:8501" # Interfața Streamlit
-      - "8000:8000" # API-ul FastAPI
+      - "8502:8000" # API-ul FastAPI
     extra_hosts:
       - "host.docker.internal:host-gateway" # Permite accesul la MySQL-ul din PC-ul tău
     env_file:
