@@ -6,6 +6,14 @@ from .ui_styles import (
     set_sidebar_style, 
     apply_pro_plotting_style
 )
+# Adaugă asta la finalul fișierului utils/__init__.py
+from .database import (  # Înlocuiește 'database' cu numele real al fișierului tău
+    get_connection,
+    get_all_naked_eye_stars,
+    get_real_stars_by_bortle,
+    clear_all_naked_eye_stars,
+    bulk_save_stars
+)
 
 from .data_fetchers import (
     get_toi_catalog, 
