@@ -1,4 +1,5 @@
 from fastapi import FastAPI, HTTPException
+
 from utils import get_all_naked_eye_stars, get_real_stars_by_bortle
 
 # Inițializăm aplicația API
@@ -13,13 +14,16 @@ def read_root():
     """Mesaj de bun venit pe ruta principală."""
     return {"mesaj": "Bun venit la API-ul Observatorului Stelar! Accesează /docs pentru documentație."}
 
-@app.get("/api/stele/salvate")
+@app.get("/api/stele/obseravtorVR")
 def get_saved_stars():
-    """Returnează toate stelele salvate momentan în baza de date locală."""
+    # 1. Verificăm mai întâi dacă avem conexiune la baza de date
+   
+    # 2. Dacă avem conexiune, cerem stelele
     stele = get_all_naked_eye_stars()
     
+    # 3. Verificăm dacă a venit lista goală
     if not stele:
-        return {"total": 0, "date": [], "mesaj": "Nu există nicio stea salvată în baza de date."}
+        return {"total": 0, "date": [], "mesaj": "Conexiunea la DB e OK, dar query-ul nu a găsit date. Verifică terminalul Uvicorn pentru erori SQL (nume greșite de coloane sau tabel)!"}
         
     return {
         "total": len(stele),

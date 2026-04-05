@@ -9,7 +9,8 @@ plotly>=5.0.0
 streamlit-plotly-events
 reportlab
 pillow
-dotenv
-mysql.connector
-mysql-connector-python[plugins]
+python-dotenv
+mysql-connector-python
+fastapi
+uvicorn
 streamlit-cookies-manager
