@@ -233,14 +233,11 @@ def bulk_save_stars(stars_list):
 
 
 
-def get_real_stars_by_bortle(bortle_level, limit=1000):
-    """
-    Folosește astroquery (TIC) pentru a aduce stele vizibile la un anumit nivel Bortle.
-    Limităm la 100-200 pentru a nu bloca baza de date sau memoria, dar le luăm pe cele mai strălucitoare.
-    """
+def get_real_stars_by_bortle(bortle_level, limit=100, lat=None, lon=None):
+    import pandas as pd
+    from astroquery.mast import Catalogs
     
     # Mapăm nivelul Bortle la magnitudinea vizuală (Vmag) aproximativă
-    # Valori conservative pentru ochiul liber
     bortle_vmag_limits = {
         1: 7.5, 2: 7.0, 3: 6.5, 4: 6.0, 
         5: 5.5, 6: 5.0, 7: 4.5, 8: 4.0, 9: 3.0
@@ -248,18 +245,20 @@ def get_real_stars_by_bortle(bortle_level, limit=1000):
     
     max_vmag = bortle_vmag_limits.get(bortle_level, 4.0)
     
+    # --- LOGICA DE VIZIBILITATE PE BAZA LOCAȚIEI ---
+    min_dec = -90.0 # Default: vedem tot cerul sudic
+    max_dec = 90.0  # Default: vedem tot cerul nordic
+    
+    if lat is not None:
+        # O stea e vizibilă deasupra orizontului dacă DEC > (Latitudine - 90)
+        min_dec = float(lat) - 90.0
+        
     try:
-        # Interogăm MAST / TIC. 
-        # Cerem stele care au Vmag mai mic (mai luminos) decât limita noastră.
-        # Pentru a nu aduce zeci de mii, setăm o limită prin `pagesize` și ordonăm după magnitudine.
-        # Coordonatele ra/dec nu le restricționăm aici (luăm de peste tot), dar putem face un box search dacă dorim.
-        
-        # Interogarea Catalogului TIC. Nu cerem o zonă anume (ra, dec goale pentru tot cerul, dar MAST limitează default)
-        # Atenție: Interogarea întregului cer e lentă, așa că facem o constrângere simplă
-        
+        # Interogăm MAST, adăugând limitarea pe axa Declinației (dec)
         query_data = Catalogs.query_criteria(
             catalog="TIC", 
-            Vmag=(-2.0, max_vmag), # De la Sirius (-1.46) până la limita vizibilității noastre
+            Vmag=(-2.0, max_vmag),
+            dec=(min_dec, max_dec), # Filtrul nostru magic de locație!
             pagesize=limit
         ).to_pandas()
         
@@ -270,22 +269,18 @@ def get_real_stars_by_bortle(bortle_level, limit=1000):
         
         for index, row in query_data.iterrows():
             tic_id = f"TIC {row['ID']}"
-            
-            # TIC nu ne dă mereu "numele clasic" (ex: Sirius), ci id-ul TIC.
-            # Pentru a păstra interogarea rapidă (să nu facem sute de apeluri SIMBAD), folosim TIC_ID ca nume principal.
             name = f"Stea Vmag: {round(row['Vmag'], 2)}" 
             
-            # Formatăm RA și DEC frumos (vin ca grade zecimale din query)
             ra_deg = float(row['ra'])
             dec_deg = float(row['dec'])
             
-            # O transformare foarte simplă în string pentru display
             ra_str = f"{ra_deg:.2f}°"
             dec_str = f"{dec_deg:.2f}°"
             
-            desc = f"Descărcată automat via MAST (TIC). Nivel Bortle setat: {bortle_level}."
+            # Formăm o descriere care să includă și locația pentru context
+            loc_text = f"Lat: {lat}°" if lat else "Global"
+            desc = f"Descărcată automat via MAST. Bortle: {bortle_level}. Vizibilă din locația: {loc_text}."
 
-            # Adăugăm în formatul cerut de funcția bulk_save_stars din DB
             stars_list.append((
                 tic_id,
                 name,
@@ -297,5 +292,7 @@ def get_real_stars_by_bortle(bortle_level, limit=1000):
         return stars_list
 
     except Exception as e:
-        print(f"Eroare la descărcarea stelelor din MAST: {e}")
+        # Folosim importul local doar pentru logging ca să nu pice în Docker
+        import logging
+        logging.error(f"Eroare la descărcarea stelelor din MAST: {e}")
         return []
