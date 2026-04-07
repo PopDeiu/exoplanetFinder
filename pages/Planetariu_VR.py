@@ -11,6 +11,7 @@ st.markdown("Selectează nivelul de poluare luminoasă și locația. Baza ta de 
 
 # --- SETĂRI LOCAȚIE ȘI CER ---
 st.subheader("Setări Observație")
+st.markdown("Default, locația este setată la Arad, România. Poți ajusta latitudinea și longitudinea pentru a obține stele relevante pentru zona ta.")
 
 # Coloane pentru Latitudine și Longitudine
 col1, col2 = st.columns(2)
