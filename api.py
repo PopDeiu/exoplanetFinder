@@ -1,6 +1,7 @@
 from fastapi import FastAPI, HTTPException, Query
 from typing import Optional
 from utils import get_all_naked_eye_stars, get_real_stars_by_bortle, get_connection
+from utils import get_saved_location
 
 # Inițializăm aplicația API
 app = FastAPI(
@@ -15,20 +16,54 @@ def read_root():
     return {"mesaj": "Bun venit la API-ul Observatorului Stelar! Accesează /docs pentru documentație."}
 
 @app.get("/api/stele/obseravtorVR")
-def get_saved_stars(
-    lat: float = Query(None, description="Latitudinea locației (ex: 46.18 pentru Arad)"),
-    lon: float = Query(None, description="Longitudinea locației (ex: 21.31 pentru Arad)")
-):
-
-    stele = get_all_naked_eye_stars()
+def get_saved_stars():
+    """
+    Returnează stelele din baza de date locală, filtrate automat 
+    pe baza latitudinii salvate tot în baza de date.
+    """
+    # 1. Luăm locația direct din baza de date
+    lat, lon = get_saved_location()
     
+    # 2. Cerem toate stelele din baza de date
+    stele_toate = get_all_naked_eye_stars()
     
-    if not stele:
-        return {"total": 0, "date": [], "mesaj": "Conexiunea la DB e OK, dar query-ul nu a găsit date."}
+    # 3. Verificăm dacă avem stele
+    if not stele_toate:
+        return {
+            "latitudine_salvata": lat,
+            "longitudine_salvata": lon,
+            "total": 0, 
+            "date": [], 
+            "mesaj": "Conexiunea la DB e OK, dar query-ul nu a găsit date salvate."
+        }
         
+    # 4. Filtrăm stelele dacă avem latitudinea salvată în DB
+    stele_vizibile = []
+    
+    if lat is not None:
+        min_dec = lat - 90.0
+        
+        for stea in stele_toate:
+            try:
+                dec_str = str(stea['declination']).replace('°', '').replace('"', '').replace("'", '').strip()
+                dec_val = float(dec_str)
+                
+                if dec_val > min_dec:
+                    stele_vizibile.append(stea)
+            except ValueError:
+                stele_vizibile.append(stea)
+                
+        stele_finale = stele_vizibile
+    else:
+        # Dacă nu s-a găsit locația în DB, dăm tot cerul
+        stele_finale = stele_toate
+
+    # 5. Răspunsul JSON final
     return {
-        "total": len(stele),
-        "date": stele
+        "latitudine_salvata": lat,
+        "longitudine_salvata": lon,
+        "total_gasite": len(stele_finale),
+        "date": stele_finale
     }
 
 @app.get("/api/stele/nasa/{bortle_level}")

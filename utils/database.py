@@ -296,3 +296,24 @@ def get_real_stars_by_bortle(bortle_level, limit=100, lat=None, lon=None):
         import logging
         logging.error(f"Eroare la descărcarea stelelor din MAST: {e}")
         return []
+    
+def get_saved_location():
+    """Extrage latitudinea și longitudinea salvate în baza de date."""
+    conn = get_connection()
+    if conn:
+        try:
+            cursor = conn.cursor(dictionary=True)
+            # ATENȚIE: Schimbă 'setari_observator' cu numele real al tabelului tău
+            # și asigură-te că numele coloanelor corespund!
+            cursor.execute("SELECT latitudine, longitudine FROM setari_observator LIMIT 1")
+            locatie = cursor.fetchone()
+            cursor.close()
+            
+            if locatie:
+                return float(locatie['latitudine']), float(locatie['longitudine'])
+        except Exception as e:
+            import logging
+            logging.error(f"Eroare la citirea locației din DB: {e}")
+            
+    # Returnăm None dacă nu găsim locația în DB
+    return None, None

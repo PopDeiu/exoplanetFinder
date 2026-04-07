@@ -12,7 +12,8 @@ from .database import (  # Înlocuiește 'database' cu numele real al fișierulu
     get_all_naked_eye_stars,
     get_real_stars_by_bortle,
     clear_all_naked_eye_stars,
-    bulk_save_stars
+    bulk_save_stars,
+    get_saved_location
 )
 
 from .data_fetchers import (
