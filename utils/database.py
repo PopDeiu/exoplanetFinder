@@ -4,6 +4,7 @@ import streamlit as st
 from dotenv import load_dotenv
 import pandas as pd
 from astroquery.mast import Catalogs
+import logging 
 
 
 # Încărcăm variabilele de mediu
@@ -114,7 +115,12 @@ def delete_observation(obs_id, user_id):
             return False
     return False
 
+
 def get_user_by_id(user_id):
+    # 1. Dacă nu avem un user_id (ex: la deschiderea paginii înainte de login), ne oprim din start.
+    if not user_id:
+        return None
+        
     conn = get_connection()
     if conn:
         try:
@@ -124,7 +130,10 @@ def get_user_by_id(user_id):
             cursor.close()
             return user
         except Exception as e:
-            print(f"Eroare la preluarea userului: {e}")
+            # 2. Folosim logging în loc de print pentru a evita eroarea "closed file" în Docker
+            logging.error(f"Eroare la preluarea userului din DB: {e}")
+            return None
+            
     return None
 
 def verify_credentials(username, password):
