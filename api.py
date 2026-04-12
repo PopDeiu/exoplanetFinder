@@ -60,8 +60,8 @@ def get_saved_stars():
 
     # 5. Răspunsul JSON final
     return {
-        "latitudine_salvata": lat,
-        "longitudine_salvata": lon,
+        "latitudine": lat,
+        "longitudine": lon,
         "total_gasite": len(stele_finale),
         "date": stele_finale
     }
