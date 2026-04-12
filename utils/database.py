@@ -305,7 +305,7 @@ def get_saved_location():
             cursor = conn.cursor(dictionary=True)
             # ATENȚIE: Schimbă 'setari_observator' cu numele real al tabelului tău
             # și asigură-te că numele coloanelor corespund!
-            cursor.execute("SELECT latitudine, longitudine FROM setari_observator LIMIT 1")
+            cursor.execute("SELECT latitudine, longitudine FROM setariVR LIMIT 1")
             locatie = cursor.fetchone()
             cursor.close()
             
