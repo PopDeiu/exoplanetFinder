@@ -310,7 +310,7 @@ def get_saved_location():
             cursor.close()
             
             if locatie:
-                return float(locatie['setare']), float(locatie['valoare'])
+                return str(locatie['setare']), str(locatie['valoare'])
         except Exception as e:
             import logging
             logging.error(f"Eroare la citirea locației din DB: {e}")

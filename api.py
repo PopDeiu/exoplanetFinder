@@ -30,8 +30,8 @@ def get_saved_stars():
     # 3. Verificăm dacă avem stele
     if not stele_toate:
         return {
-            "latitudine_salvata": lat,
-            "longitudine_salvata": lon,
+            "latitudine": lat,
+            "longitudine": lon,
             "total": 0, 
             "date": [], 
             "mesaj": "Conexiunea la DB e OK, dar query-ul nu a găsit date salvate."
