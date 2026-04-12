@@ -305,12 +305,12 @@ def get_saved_location():
             cursor = conn.cursor(dictionary=True)
             # ATENȚIE: Schimbă 'setari_observator' cu numele real al tabelului tău
             # și asigură-te că numele coloanelor corespund!
-            cursor.execute("SELECT latitudine, longitudine FROM setariVR LIMIT 1")
+            cursor.execute("SELECT setare, valoare FROM setariVR LIMIT 1")
             locatie = cursor.fetchone()
             cursor.close()
             
             if locatie:
-                return float(locatie['latitudine']), float(locatie['longitudine'])
+                return float(locatie['setare']), float(locatie['valoare'])
         except Exception as e:
             import logging
             logging.error(f"Eroare la citirea locației din DB: {e}")
