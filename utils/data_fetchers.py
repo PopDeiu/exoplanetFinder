@@ -5,6 +5,8 @@ from astroquery.mast import Catalogs
 from astroquery.simbad import Simbad
 from astroquery.skyview import SkyView
 from astroquery.nasa_exoplanet_archive import NasaExoplanetArchive
+import astropy.units as u
+from astropy.coordinates import SkyCoord
 
 # --- FUNCȚII CATALOG TOI (TESS Objects of Interest) ---
 
@@ -283,3 +285,25 @@ def fetch_untested_targets(num_to_sample=100):
         return result[['Searchable ID', 'Tmag', 'ra', 'dec', 'rad', 'mass']]
     except:
         return pd.DataFrame()
+
+def get_common_name(ra_deg, dec_deg):
+    """
+    Interoghează SIMBAD pentru a găsi un nume comun bazat pe coordonate.
+    """
+    try:
+        # Creăm un obiect de coordonate
+        coord = SkyCoord(ra=ra_deg, dec=dec_deg, unit=(u.degree, u.degree), frame='icrs')
+        
+        # Căutăm obiecte pe o rază foarte mică (2 secunde de arc)
+        result_table = Simbad.query_region(coord, radius=2 * u.arcsec)
+        
+        if result_table is not None and len(result_table) > 0:
+            # Luăm identificatorul principal (coloana MAIN_ID)
+            main_id = result_table[0]['MAIN_ID']
+            # Curățăm puțin string-ul (uneori vin cu spații extra)
+            return main_id.decode('utf-8') if isinstance(main_id, bytes) else main_id
+            
+    except Exception:
+        pass
+    
+    return None

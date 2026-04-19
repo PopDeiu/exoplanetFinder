@@ -4,7 +4,9 @@ import streamlit as st
 from dotenv import load_dotenv
 import pandas as pd
 from astroquery.mast import Catalogs
-import logging 
+import logging
+
+from exoplanetFinder.utils.data_fetchers import get_common_name 
 
 
 # Încărcăm variabilele de mediu
@@ -271,6 +273,21 @@ def get_real_stars_by_bortle(bortle_level, limit=100, lat=None, lon=None):
         stars_list = []
         
         for index, row in query_data.iterrows():
+            ra_deg = float(row['ra'])
+            dec_deg = float(row['dec'])
+        
+        # --- LOGICA NOUĂ PENTRU NUME ---
+            common_name = get_common_name(ra_deg, dec_deg)
+        
+            if common_name:
+            # Dacă găsim un nume ca "NAME Sirius" sau "* alf CMa", îl curățăm puțin
+                clean_name = common_name.replace("NAME ", "").strip()
+                name = f"{clean_name} (Vmag: {round(row['Vmag'], 2)})"
+            else:
+                name = f"Stea Vmag: {round(row['Vmag'], 2)}"
+        # -------------------------------
+
+            ra_str = f"{ra_deg:.2f}°"
             tic_id = f"TIC {row['ID']}"
             name = f"Stea Vmag: {round(row['Vmag'], 2)}" 
             
