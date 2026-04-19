@@ -1,4 +1,5 @@
 import streamlit as st
+from exoplanetFinder.utils.data_fetchers import get_stars_from_simbad
 from utils.database import clear_all_naked_eye_stars, bulk_save_stars, get_real_stars_by_bortle
 from utils.ui_styles import set_galaxy_background, set_sidebar_style
 
@@ -37,7 +38,8 @@ if st.button("Sincronizează cu Baza de Date", type="primary", use_container_wid
         
         # 1. Obținem stelele (am adăugat lat și lon ca parametri)
         # Atenție: Va trebui să actualizăm funcția în utils.py ca să folosească aceste coordonate!
-        stars_to_save = get_real_stars_by_bortle(bortle_scale, lat=latitudine, lon=longitudine)
+        #stars_to_save = get_real_stars_by_bortle(bortle_scale, lat=latitudine, lon=longitudine)
+        stars_to_save = get_stars_from_simbad(bortle_scale, lat=latitudine, lon=longitudine)
         
         if not stars_to_save:
             st.warning("Nu s-au găsit stele sau a apărut o problemă la descărcare.")

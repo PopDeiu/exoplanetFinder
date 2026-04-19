@@ -307,3 +307,98 @@ def get_common_name(ra_deg, dec_deg):
         pass
     
     return None
+
+from astroquery.simbad import Simbad
+import numpy as np
+
+def get_stars_from_simbad(bortle_level, limit=100, lat=None, lon=None):
+    from astroquery.simbad import Simbad
+    import numpy as np
+    
+    # Mapăm nivelul Bortle la magnitudinea vizuală (Vmag) aproximativă
+    bortle_vmag_limits = {
+        1: 7.5, 2: 7.0, 3: 6.5, 4: 6.0, 
+        5: 5.5, 6: 5.0, 7: 4.5, 8: 4.0, 9: 3.0
+    }
+    
+    max_vmag = bortle_vmag_limits.get(bortle_level, 4.0)
+    
+    # --- LOGICA DE VIZIBILITATE PE BAZA LOCAȚIEI ---
+    min_dec = -90.0 # Default: vedem tot cerul sudic
+    max_dec = 90.0  # Default: vedem tot cerul nordic
+    
+    if lat is not None:
+        # O stea e vizibilă deasupra orizontului dacă DEC > (Latitudine - 90)
+        min_dec = float(lat) - 90.0
+        
+    try:
+        # Configurăm SIMBAD să aducă exact ce avem nevoie
+        custom_simbad = Simbad()
+        custom_simbad.ROW_LIMIT = limit
+        
+        # Adăugăm filtre suplimentare: Vmag, Clasa Spectrală, Paralaxa
+        custom_simbad.add_votable_fields('flux(V)', 'sp', 'plx')
+        
+        # Interogăm SIMBAD, limitând după Vmag și declinație
+        query_string = f"flux(V) <= {max_vmag} & dec >= {min_dec}"
+        query_data = custom_simbad.query_criteria(query_string)
+        
+        if query_data is None or len(query_data) == 0:
+            return []
+
+        stars_list = []
+        
+        for row in query_data:
+            # 1. Numele stelei (SIMBAD returnează bytes uneori)
+            raw_name = row['MAIN_ID']
+            base_name = raw_name.decode('utf-8').strip() if isinstance(raw_name, bytes) else str(raw_name).strip()
+            # Curățăm numele (ex: "NAME Sirius" -> "Sirius")
+            clean_name = base_name.replace("NAME ", "").replace("* ", "")
+            
+            # 2. Magnitudinea V
+            vmag = float(row['FLUX_V']) if not np.ma.is_masked(row['FLUX_V']) else max_vmag
+            
+            # 3. Clasa spectrală (temperatura/culoarea)
+            raw_sp = row['SP_TYPE']
+            sp_type = raw_sp.decode('utf-8').strip() if isinstance(raw_sp, bytes) else str(raw_sp).strip()
+            sp_text = sp_type if sp_type and not np.ma.is_masked(row['SP_TYPE']) else "Necunoscută"
+
+            # 4. Calculul distanței (dacă avem paralaxă)
+            distanta_al = "Necunoscută"
+            if not np.ma.is_masked(row['PLX_VALUE']) and float(row['PLX_VALUE']) > 0:
+                plx_mas = float(row['PLX_VALUE'])
+                # Formula distanței: D (parseci) = 1000 / paralaxă(mas)
+                # 1 parsec = 3.26156 ani-lumină
+                distanta_pc = 1000.0 / plx_mas
+                distanta_al = f"{round(distanta_pc * 3.26156, 1)} ani-lumină"
+
+            # 5. Coordonate
+            # SIMBAD le returnează în format "HH MM SS" (RA) și "+DD MM SS" (DEC).
+            # Le trimitem ca string-uri, așa cum făcea și funcția ta originală.
+            ra_str = str(row['RA'])
+            dec_str = str(row['DEC'])
+            
+            # Formăm variabilele pentru a respecta tuplul tău original
+            star_id = f"SIMBAD_{clean_name.replace(' ', '_')}"
+            display_name = f"{clean_name} (Vmag: {round(vmag, 2)})"
+            
+            loc_text = f"Lat: {lat}°" if lat else "Global"
+            desc = (f"Bortle: {bortle_level}. Locație: {loc_text}. "
+                    f"Clasă spectrală: {sp_text}. Distanță estimată: {distanta_al}.")
+
+            # Păstrăm exact formatul tuplului așteptat de restul aplicației tale
+            stars_list.append((
+                star_id,       # Înlocuiește tic_id
+                display_name,  # Înlocuiește name
+                ra_str,        # Coord RA
+                dec_str,       # Coord DEC
+                desc           # Descriere extinsă
+            ))
+            
+        return stars_list
+
+    except Exception as e:
+        # Folosim importul local doar pentru logging ca să nu pice în Docker
+        import logging
+        logging.error(f"Eroare la descărcarea stelelor din SIMBAD: {e}")
+        return []
