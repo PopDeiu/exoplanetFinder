@@ -6,7 +6,7 @@ import pandas as pd
 from astroquery.mast import Catalogs
 import logging
 
-from exoplanetFinder.utils.data_fetchers import get_common_name 
+from .data_fetchers import get_common_name 
 
 
 # Încărcăm variabilele de mediu
