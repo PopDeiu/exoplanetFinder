@@ -55,6 +55,7 @@ if st.button("Sincronizează cu Baza de Date", type="primary", use_container_wid
                     st.success(f"✅ Succes! Am șters datele vechi și am salvat {len(stars_to_save)} stele noi pentru Bortle {bortle_scale}.")
                     st.balloons()
                 else:
+                    print(f"!!! EROARE SQL LA INSERARE: {e} !!!") # Adaugă linia asta
                     st.error("Eroare la salvarea noilor stele în baza de date.")
             else:
                 st.error("Eroare la ștergerea stelelor vechi. Sincronizarea a fost oprită.")
