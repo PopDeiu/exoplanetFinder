@@ -332,14 +332,13 @@ def get_stars_from_simbad(bortle_level, limit=100, lat=None, lon=None):
         min_dec = float(lat) - 90.0
         
     try:
-        # Configurăm SIMBAD să aducă exact ce avem nevoie
         custom_simbad = Simbad()
         custom_simbad.ROW_LIMIT = limit
         
-        # Adăugăm filtre suplimentare: Vmag, Clasa Spectrală, Paralaxa
-        custom_simbad.add_votable_fields('flux(V)', 'sp', 'plx')
+        # 1. Cerem EXPLICIT main_id ca să fim siguri că nu e omis
+        custom_simbad.add_votable_fields('main_id', 'flux(V)', 'sp', 'plx')
         
-        # Interogăm SIMBAD, limitând după Vmag și declinație
+        # 2. Folosim "Vmag" pentru a filtra
         query_string = f"Vmag <= {max_vmag} & dec >= {min_dec}"
         query_data = custom_simbad.query_criteria(query_string)
         
@@ -348,37 +347,48 @@ def get_stars_from_simbad(bortle_level, limit=100, lat=None, lon=None):
 
         stars_list = []
         
+        # 3. Creăm un "translator" pentru coloane (ex: 'MAIN_ID' -> 'main_id' sau 'MAIN_ID')
+        # Asta ne salvează de orice schimbare viitoare a API-ului SIMBAD
+        cols = {c.upper(): c for c in query_data.colnames}
+        
         for row in query_data:
-            # 1. Numele stelei (SIMBAD returnează bytes uneori)
-            raw_name = row['MAIN_ID']
+            # --- 1. Numele (luăm MAIN_ID, sau prima coloană ca fallback) ---
+            id_col_name = cols.get('MAIN_ID', query_data.colnames[0])
+            raw_name = row[id_col_name]
             base_name = raw_name.decode('utf-8').strip() if isinstance(raw_name, bytes) else str(raw_name).strip()
-            # Curățăm numele (ex: "NAME Sirius" -> "Sirius")
             clean_name = base_name.replace("NAME ", "").replace("* ", "")
             
-            # 2. Magnitudinea V
-            vmag = float(row['FLUX_V']) if not np.ma.is_masked(row['FLUX_V']) else max_vmag
-            
-            # 3. Clasa spectrală (temperatura/culoarea)
-            raw_sp = row['SP_TYPE']
-            sp_type = raw_sp.decode('utf-8').strip() if isinstance(raw_sp, bytes) else str(raw_sp).strip()
-            sp_text = sp_type if sp_type and not np.ma.is_masked(row['SP_TYPE']) else "Necunoscută"
+            # --- 2. Magnitudinea V ---
+            flux_col = cols.get('FLUX_V')
+            if flux_col and not np.ma.is_masked(row[flux_col]):
+                vmag = float(row[flux_col])
+            else:
+                vmag = max_vmag
+                
+            # --- 3. Clasa spectrală ---
+            sp_col = cols.get('SP_TYPE')
+            if sp_col and not np.ma.is_masked(row[sp_col]):
+                raw_sp = row[sp_col]
+                sp_type = raw_sp.decode('utf-8').strip() if isinstance(raw_sp, bytes) else str(raw_sp).strip()
+                sp_text = sp_type if sp_type else "Necunoscută"
+            else:
+                sp_text = "Necunoscută"
 
-            # 4. Calculul distanței (dacă avem paralaxă)
+            # --- 4. Distanța ---
+            plx_col = cols.get('PLX_VALUE')
             distanta_al = "Necunoscută"
-            if not np.ma.is_masked(row['PLX_VALUE']) and float(row['PLX_VALUE']) > 0:
-                plx_mas = float(row['PLX_VALUE'])
-                # Formula distanței: D (parseci) = 1000 / paralaxă(mas)
-                # 1 parsec = 3.26156 ani-lumină
+            if plx_col and not np.ma.is_masked(row[plx_col]) and float(row[plx_col]) > 0:
+                plx_mas = float(row[plx_col])
                 distanta_pc = 1000.0 / plx_mas
                 distanta_al = f"{round(distanta_pc * 3.26156, 1)} ani-lumină"
 
-            # 5. Coordonate
-            # SIMBAD le returnează în format "HH MM SS" (RA) și "+DD MM SS" (DEC).
-            # Le trimitem ca string-uri, așa cum făcea și funcția ta originală.
-            ra_str = str(row['RA'])
-            dec_str = str(row['DEC'])
+            # --- 5. Coordonate ---
+            ra_col = cols.get('RA')
+            dec_col = cols.get('DEC')
+            ra_str = str(row[ra_col]) if ra_col else "0"
+            dec_str = str(row[dec_col]) if dec_col else "0"
             
-            # Formăm variabilele pentru a respecta tuplul tău original
+            # Construim tuplul final
             star_id = f"SIMBAD_{clean_name.replace(' ', '_')}"
             display_name = f"{clean_name} (Vmag: {round(vmag, 2)})"
             
@@ -386,19 +396,17 @@ def get_stars_from_simbad(bortle_level, limit=100, lat=None, lon=None):
             desc = (f"Bortle: {bortle_level}. Locație: {loc_text}. "
                     f"Clasă spectrală: {sp_text}. Distanță estimată: {distanta_al}.")
 
-            # Păstrăm exact formatul tuplului așteptat de restul aplicației tale
             stars_list.append((
-                star_id,       # Înlocuiește tic_id
-                display_name,  # Înlocuiește name
-                ra_str,        # Coord RA
-                dec_str,       # Coord DEC
-                desc           # Descriere extinsă
+                star_id,
+                display_name,
+                ra_str,
+                dec_str,
+                desc
             ))
             
         return stars_list
 
     except Exception as e:
-        # Folosim importul local doar pentru logging ca să nu pice în Docker
         import logging
         logging.error(f"Eroare la descărcarea stelelor din SIMBAD: {e}")
         return []
