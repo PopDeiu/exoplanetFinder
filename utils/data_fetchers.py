@@ -383,10 +383,24 @@ def get_stars_from_simbad(bortle_level, limit=100, lat=None, lon=None):
                 distanta_al = f"{round(distanta_pc * 3.26156, 1)} ani-lumină"
 
             # --- 5. Coordonate ---
+            # --- 5. Coordonate ---
             ra_col = cols.get('RA')
             dec_col = cols.get('DEC')
-            ra_str = str(row[ra_col]) if ra_col else "0"
-            dec_str = str(row[dec_col]) if dec_col else "0"
+            ra_raw = str(row[ra_col]) if ra_col else "0"
+            dec_raw = str(row[dec_col]) if dec_col else "0"
+            
+            # Convertim din "HH MM SS" în grade zecimale (ca să placă bazei de date)
+            try:
+                from astropy.coordinates import SkyCoord
+                import astropy.units as u
+                # SIMBAD dă RA în ore și DEC în grade
+                coord = SkyCoord(ra_raw, dec_raw, unit=(u.hourangle, u.deg))
+                ra_str = f"{coord.ra.degree:.2f}°"
+                dec_str = f"{coord.dec.degree:.2f}°"
+            except Exception:
+                # Fallback dacă ceva merge prost la conversie
+                ra_str = ra_raw
+                dec_str = dec_raw
             
             # Construim tuplul final
             star_id = f"SIMBAD_{clean_name.replace(' ', '_')}"
