@@ -340,7 +340,7 @@ def get_stars_from_simbad(bortle_level, limit=100, lat=None, lon=None):
         custom_simbad.add_votable_fields('flux(V)', 'sp', 'plx')
         
         # Interogăm SIMBAD, limitând după Vmag și declinație
-        query_string = f"flux(V) <= {max_vmag} & dec >= {min_dec}"
+        query_string = f"Vmag <= {max_vmag} & dec >= {min_dec}"
         query_data = custom_simbad.query_criteria(query_string)
         
         if query_data is None or len(query_data) == 0:
