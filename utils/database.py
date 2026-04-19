@@ -186,6 +186,9 @@ def get_all_naked_eye_stars():
         except Exception as e:
             print(f"Eroare la citirea stelelor: {e}")
             return []
+        finally:
+        # Aceasta este linia care lipsea:
+            conn.close()
     return []
 
 
