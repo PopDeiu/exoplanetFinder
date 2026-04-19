@@ -1,5 +1,5 @@
 import streamlit as st
-from exoplanetFinder.utils.data_fetchers import get_stars_from_simbad
+from utils.data_fetchers import get_stars_from_simbad
 from utils.database import clear_all_naked_eye_stars, bulk_save_stars, get_real_stars_by_bortle
 from utils.ui_styles import set_galaxy_background, set_sidebar_style
 
