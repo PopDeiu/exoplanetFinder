@@ -12,7 +12,7 @@ app = FastAPI(
 )
 
 @app.get("/api/setari")
-def get_all_settings():
+def get_app_settings():
     """
     Returnează setările curente ale aplicației: 
     locația salvată, modul de timp și data observației.
