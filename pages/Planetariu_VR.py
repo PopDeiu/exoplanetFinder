@@ -87,6 +87,8 @@ with st.expander("2. Sincronizare după Locație și Timp", expanded=True):
     # Folosim direct session_state pentru a permite și modificarea manuală a coordonatelor
     lat_val = col1.number_input("Latitudine (°N)", -90.0, 90.0, key="lat", format="%.4f")
     lon_val = col2.number_input("Longitudine (°E)", -180.0, 180.0, key="lon", format="%.4f")
+    nume_oras = st.session_state.city_selector
+
 
     if st.button("Sincronizează Locație & Timp", type="primary", use_container_width=True):
         with st.spinner("Sincronizare în curs..."):
@@ -102,6 +104,7 @@ with st.expander("2. Sincronizare după Locație și Timp", expanded=True):
                 
                 update_app_setting("latitudine", lat_val)
                 update_app_setting("longitudine", lon_val)
+                update_app_setting("oras", nume_oras)
                 update_app_setting("foloseste_data_curenta", "da" if use_current_time else "nu")
                 update_app_setting("data_si_ora_obs", final_time.strftime("%Y-%m-%d %H:%M:%S"))
                 # ------------------------------------
