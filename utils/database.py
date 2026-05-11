@@ -31,7 +31,7 @@ def get_all_settings():
     conn = get_connection()
     cursor = conn.cursor(dictionary=True)
     try:
-        cursor.execute("SELECT setare, valoare FROM setari_aplicatie") # Ajustează numele tabelului dacă diferă
+        cursor.execute("SELECT setare, valoare FROM setariVR") # Ajustează numele tabelului dacă diferă
         rows = cursor.fetchall()
         # Transformăm lista de rânduri într-un singur dicționar { "latitudine": "46.18", ... }
         settings_dict = {row['setare']: row['valoare'] for row in rows}
