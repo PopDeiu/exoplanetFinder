@@ -2,17 +2,34 @@ import streamlit as st
 from datetime import datetime
 import pytz
 from utils.data_fetchers import get_stars_from_simbad
-from utils.database import clear_all_naked_eye_stars, bulk_save_stars
+from utils.database import clear_all_naked_eye_stars, bulk_save_stars, get_all_settings, update_app_setting
 from utils.ui_styles import set_galaxy_background, set_sidebar_style
 
 # Configurare zonă orară România
 RO_TZ = pytz.timezone('Europe/Bucharest')
+nume_oras = st.session_state.city_selector if "city_selector" in st.session_state else "Arad"
+# --- FUNCȚIE ÎNCĂRCARE SETĂRI ---
+def load_settings_into_session():
+    """Citește din DB și pune în session_state dacă nu există deja"""
+    db_settings = get_all_settings()
+    
+    if db_settings:
+        # Mapăm valorile din DB în session_state
+        if "lat" not in st.session_state:
+            st.session_state.lat = float(db_settings.get("latitudine", 46.1866))
+        if "lon" not in st.session_state:
+            st.session_state.lon = float(db_settings.get("longitudine", 21.3123))
+        if "viteza_slider" not in st.session_state:
+            st.session_state.viteza_slider = int(db_settings.get("viteza", 0))
+        if "city_selector" not in st.session_state:
+            st.session_state.city_selector = db_settings.get("oras", "Arad")
+        if "bortle_slider" not in st.session_state:
+            st.session_state.bortle_slider = int(db_settings.get("bortle", 4))
+
+# Apelăm funcția de încărcare imediat după importuri
+load_settings_into_session()
 
 st.set_page_config(page_title="Planetariu VR")
-set_sidebar_style()
-set_galaxy_background("stellar")
-
-st.title("Planetariu VR")
 
 # --- ORASE PREDEFINITE (Fără "Personalizat") ---
 ORASE = {
@@ -41,10 +58,9 @@ with st.expander("1. Sincronizare după Poluare Luminoasă (Bortle)", expanded=T
     bortle_scale = st.select_slider(
         "Selectează nivelul Bortle:",
         options=list(range(1, 10)),
-        value=4,
-        key="bortle_slider"
+        key="bortle_slider" # Va prelua automat valoarea din session_state încărcată din DB
     )
-
+    # Când se apasă butonul, salvăm și bortle în DB
     if st.button("Sincronizează doar Bortle", type="primary", use_container_width=True):
         with st.spinner("Se actualizează..."):
             now_ro = datetime.now(RO_TZ)
@@ -54,6 +70,7 @@ with st.expander("1. Sincronizare după Poluare Luminoasă (Bortle)", expanded=T
                 bulk_save_stars(stars)
                 st.success(f"✅ S-au salvat {len(stars)} stele.")
                 st.balloons()
+        update_app_setting("bortle", bortle_scale)
 
 # ========== FORMULARUL 2: LOCAȚIE ȘI TIMP ==========
 with st.expander("2. Sincronizare după Locație și Timp", expanded=True):
@@ -73,31 +90,22 @@ with st.expander("2. Sincronizare după Locație și Timp", expanded=True):
         st.info(f"Ora curentă (RO): {final_time.strftime('%H:%M:%S')}")
 
     viteza_simulare = st.slider(
-        "Viteza simulării (flux temporal):",
-        min_value=-100,
-        max_value=100,
-        value=0,
-        step=1,
-        key="viteza_slider",
-        help="Setează cât de repede se mișcă timpul în simularea VR"
+        "Viteza simulării:",
+        -100, 100, 
+        key="viteza_slider" 
     )
 
-    st.write("---")
-    
-    # Secțiune Locație
     st.selectbox(
         "Alege un oraș preset:", 
         options=list(ORASE.keys()), 
-        index=0, # Arad este acum primul
         key="city_selector", 
         on_change=on_city_change
     )
 
     col1, col2 = st.columns(2)
-    # Folosim direct session_state pentru a permite și modificarea manuală a coordonatelor
+    # Folosim direct value=st.session_state.lat/lon
     lat_val = col1.number_input("Latitudine (°N)", -90.0, 90.0, key="lat", format="%.4f")
     lon_val = col2.number_input("Longitudine (°E)", -180.0, 180.0, key="lon", format="%.4f")
-    nume_oras = st.session_state.city_selector
 
 
     if st.button("Sincronizează Locație & Timp", type="primary", use_container_width=True):
