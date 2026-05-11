@@ -1,6 +1,6 @@
 import streamlit as st
 from datetime import datetime
-import pytz  # Adăugat pentru manipularea fusului orar
+import pytz
 from utils.data_fetchers import get_stars_from_simbad
 from utils.database import clear_all_naked_eye_stars, bulk_save_stars
 from utils.ui_styles import set_galaxy_background, set_sidebar_style
@@ -24,82 +24,77 @@ ORASE = {
     "Londra": (51.5074, -0.1278),
 }
 
+# Initializare Session State
 if "lat" not in st.session_state:
     st.session_state.lat = 46.1866
 if "lon" not in st.session_state:
     st.session_state.lon = 21.3123
 
 def on_city_change():
+    """Actualizează instantaneu valorile din state când orașul este schimbat"""
     oras = st.session_state.city_selector
     if oras in ORASE and oras != "Personalizat":
-        st.session_state.lat, st.session_state.lon = ORASE[oras]
+        st.session_state.lat = ORASE[oras][0]
+        st.session_state.lon = ORASE[oras][1]
 
-# ========== FORMULARUL 1: POLUARE LUMINOASĂ ==========
+# ========== FORMULARUL 1: BORTLE ==========
 with st.expander("1. Sincronizare după Poluare Luminoasă (Bortle)", expanded=True):
-    st.markdown("Filtrează stelele din baza de date în funcție de vizibilitatea oferită de scara Bortle.")
-    
     bortle_scale = st.select_slider(
         "Selectează nivelul Bortle:",
         options=list(range(1, 10)),
         value=4,
-        key="bortle_slider",
-        format_func=lambda x: f"Bortle {x}"
+        key="bortle_slider"
     )
 
     if st.button("Sincronizează doar Bortle", type="primary", use_container_width=True):
-        with st.spinner("Se actualizează baza de date..."):
-            # Folosim ora curentă RO chiar și pentru sincronizarea simplă
+        with st.spinner("Se actualizează..."):
             now_ro = datetime.now(RO_TZ)
             stars = get_stars_from_simbad(bortle_scale, lat=st.session_state.lat, lon=st.session_state.lon, time=now_ro)
             if stars:
                 clear_all_naked_eye_stars()
                 bulk_save_stars(stars)
-                st.success(f"✅ S-au salvat {len(stars)} stele (Bortle {bortle_scale})")
+                st.success(f"✅ S-au salvat {len(stars)} stele.")
                 st.balloons()
-            else:
-                st.error("Nu s-au putut prelua datele.")
 
-st.write("")
-
-# ========== FORMULARUL 2: LOCALIZARE ȘI TIMP ==========
+# ========== FORMULARUL 2: LOCAȚIE ȘI TIMP ==========
 with st.expander("2. Sincronizare după Locație și Timp", expanded=True):
-    st.markdown("Setează coordonatele geografice și momentul observației.")
-    
-    # --- LOGICĂ TIMP ROMÂNIA ---
+    # Secțiune Timp
     now_ro = datetime.now(RO_TZ)
-    
-    use_current_time = st.checkbox("Folosește data și ora curentă (România)", value=True, key="check_time")
+    use_current_time = st.checkbox("Folosește data și ora curentă (România)", value=True)
     
     if not use_current_time:
-        col_t1, col_t2 = st.columns(2)
-        with col_t1:
-            d = st.date_input("Data", now_ro.date())
-        with col_t2:
-            t = st.time_input("Ora", now_ro.time())
-        # Combinăm data și ora și aplicăm fusul orar de RO
+        c1, c2 = st.columns(2)
+        d = c1.date_input("Data", now_ro.date())
+        t = c2.time_input("Ora", now_ro.time())
         final_time = RO_TZ.localize(datetime.combine(d, t))
     else:
         final_time = now_ro
-        st.info(f"Ora curentă în România: {final_time.strftime('%H:%M:%S')}")
+        st.info(f"Ora curentă (RO): {final_time.strftime('%H:%M:%S')}")
 
-    # --- LOGICĂ LOCAȚIE ---
-    st.selectbox("Oraș preset:", options=list(ORASE.keys()), index=1, key="city_selector", on_change=on_city_change)
+    st.write("---")
+    
+    # Secțiune Locație
+    st.selectbox(
+        "Alege un oraș preset:", 
+        options=list(ORASE.keys()), 
+        index=1, 
+        key="city_selector", 
+        on_change=on_city_change # Trigger-ul pentru actualizare instantă
+    )
 
     col1, col2 = st.columns(2)
-    with col1:
-        lat = st.number_input("Latitudine (°N)", -90.0, 90.0, value=st.session_state.lat, key="lat_input")
-    with col2:
-        lon = st.number_input("Longitudine (°E)", -180.0, 180.0, value=st.session_state.lon, key="lon_input")
+    # ATENȚIE: 'value' este legat direct de st.session_state
+    lat_val = col1.number_input("Latitudine (°N)", -90.0, 90.0, key="lat", format="%.4f")
+    lon_val = col2.number_input("Longitudine (°E)", -180.0, 180.0, key="lon", format="%.4f")
 
-    if st.button("Sincronizează Locație & Timp", type="primary", use_container_width=True, key="sync_loc_time"):
-        with st.spinner("Se calculează stelele vizibile..."):
+    if st.button("Sincronizează Locație & Timp", type="primary", use_container_width=True):
+        with st.spinner("Sincronizare în curs..."):
             current_bortle = st.session_state.get("bortle_slider", 4)
-            stars = get_stars_from_simbad(current_bortle, lat=lat, lon=lon, time=final_time)
+            # Folosim direct valorile din inputs
+            stars = get_stars_from_simbad(current_bortle, lat=lat_val, lon=lon_val, time=final_time)
             
             if stars:
                 clear_all_naked_eye_stars()
                 bulk_save_stars(stars)
-                st.success(f"✅ Sincronizat pentru {lat}, {lon} la data de {final_time.strftime('%d/%m/%Y %H:%M')}")
+                st.success(f"✅ Locație actualizată: {lat_val}, {lon_val}")
                 st.balloons()
-            else:
-                st.warning("Nu s-au găsit stele vizibile pentru aceste setări.")
