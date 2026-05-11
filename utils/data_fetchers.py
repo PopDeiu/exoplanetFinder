@@ -335,10 +335,12 @@ def get_common_name(ra_deg, dec_deg):
 from astroquery.simbad import Simbad
 import numpy as np
 
-def get_stars_from_simbad(bortle_level, limit=100, lat=None, lon=None):
+def get_stars_from_simbad(bortle_level, limit=100, lat=None, lon=None, time=None):
     from astroquery.simbad import Simbad
     import numpy as np
-    
+    from datetime import datetime
+    import pytz
+
     # Mapăm nivelul Bortle la magnitudinea vizuală (Vmag) aproximativă
     bortle_vmag_limits = {
         1: 7.5, 2: 7.0, 3: 6.5, 4: 6.0, 
@@ -347,22 +349,28 @@ def get_stars_from_simbad(bortle_level, limit=100, lat=None, lon=None):
     
     max_vmag = bortle_vmag_limits.get(bortle_level, 4.0)
     
+    # --- LOGICA DE TIMP ȘI FUS ORAR ---
+    # Dacă nu primim timp, folosim ora curentă a României
+    if time is None:
+        ro_tz = pytz.timezone('Europe/Bucharest')
+        time = datetime.now(ro_tz)
+    
     # --- LOGICA DE VIZIBILITATE PE BAZA LOCAȚIEI ---
-    min_dec = -90.0 # Default: vedem tot cerul sudic
-    max_dec = 90.0  # Default: vedem tot cerul nordic
+    min_dec = -90.0 
+    max_dec = 90.0  
     
     if lat is not None:
-        # O stea e vizibilă deasupra orizontului dacă DEC > (Latitudine - 90)
+        # Filtrare grosieră: O stea e vizibilă dacă DEC > (Latitudine - 90)
         min_dec = float(lat) - 90.0
         
     try:
         custom_simbad = Simbad()
         custom_simbad.ROW_LIMIT = limit
         
-        # 1. Cerem EXPLICIT main_id ca să fim siguri că nu e omis
-        custom_simbad.add_votable_fields('main_id', 'flux(V)', 'sp', 'plx', 'ids')
+        # Adăugăm câmpurile necesare
+        custom_simbad.add_votable_fields('main_id', 'flux(V)', 'sp', 'plx', 'ids', 'ra', 'dec')
         
-        # 2. Folosim "Vmag" pentru a filtra
+        # Query către SIMBAD folosind Vmag și Declinația minimă
         query_string = f"Vmag <= {max_vmag} & dec >= {min_dec}"
         query_data = custom_simbad.query_criteria(query_string)
         
@@ -370,45 +378,33 @@ def get_stars_from_simbad(bortle_level, limit=100, lat=None, lon=None):
             return []
 
         stars_list = []
-        
-        # 3. Creăm un "translator" pentru coloane (ex: 'MAIN_ID' -> 'main_id' sau 'MAIN_ID')
-        # Asta ne salvează de orice schimbare viitoare a API-ului SIMBAD
         cols = {c.upper(): c for c in query_data.colnames}
         
         for row in query_data:
-            # --- 1. Numele (luăm MAIN_ID, sau prima coloană ca fallback) ---
-            #id_col_name = cols.get('MAIN_ID', query_data.colnames[0])
-            #raw_name = row[id_col_name]
-            #base_name = raw_name.decode('utf-8').strip() if isinstance(raw_name, bytes) else str(raw_name).strip()
-            #clean_name = base_name.replace("NAME ", "").replace("* ", "")
-
+            # --- 1. Extragere Nume și TIC ID ---
             all_ids = str(row['ids'])
             clean_name = None
-            # Split by '|' and look for the one starting with "NAME"
+            tic_id = "N/A"
+            
             for identifier in all_ids.split('|'):
                 if identifier.startswith('NAME'):
                     clean_name = identifier.replace('NAME', '').strip()
-                if identifier.startswith('TIC'):
+                if 'TIC' in identifier:
                     tic_id = identifier.strip()
-            if not clean_name:
-                clean_name = row['main_id']
-
             
+            if not clean_name:
+                clean_name = str(row['main_id'])
+
             # --- 2. Magnitudinea V ---
-            flux_col = cols.get('flux(V)')
-            if flux_col and not np.ma.is_masked(row[flux_col]):
-                vmag = float(row[flux_col])
-            else:
-                vmag = max_vmag
+            flux_col = cols.get('FLUX(V)')
+            vmag = float(row[flux_col]) if flux_col and not np.ma.is_masked(row[flux_col]) else max_vmag
                 
             # --- 3. Clasa spectrală ---
             sp_col = cols.get('SP_TYPE')
+            sp_text = "Necunoscută"
             if sp_col and not np.ma.is_masked(row[sp_col]):
                 raw_sp = row[sp_col]
-                sp_type = raw_sp.decode('utf-8').strip() if isinstance(raw_sp, bytes) else str(raw_sp).strip()
-                sp_text = sp_type if sp_type else "Necunoscută"
-            else:
-                sp_text = "Necunoscută"
+                sp_text = raw_sp.decode('utf-8').strip() if isinstance(raw_sp, bytes) else str(raw_sp).strip()
 
             # --- 4. Distanța ---
             plx_col = cols.get('PLX_VALUE')
@@ -418,32 +414,28 @@ def get_stars_from_simbad(bortle_level, limit=100, lat=None, lon=None):
                 distanta_pc = 1000.0 / plx_mas
                 distanta_al = f"{round(distanta_pc * 3.26156, 1)} ani-lumină"
 
-            # --- 5. Coordonate ---
-            # --- 5. Coordonate ---
-            ra_col = cols.get('RA')
-            dec_col = cols.get('DEC')
-            ra_raw = str(row[ra_col]) if ra_col else "0"
-            dec_raw = str(row[dec_col]) if dec_col else "0"
+            # --- 5. Coordonate (Conversie în grade) ---
+            ra_raw = str(row['ra'])
+            dec_raw = str(row['dec'])
             
-            # Convertim din "HH MM SS" în grade zecimale (ca să placă bazei de date)
             try:
                 from astropy.coordinates import SkyCoord
                 import astropy.units as u
-                # SIMBAD dă RA în ore și DEC în grade
                 coord = SkyCoord(ra_raw, dec_raw, unit=(u.hourangle, u.deg))
-                ra_str = f"{coord.ra.degree:.2f}°"
-                dec_str = f"{coord.dec.degree:.2f}°"
+                ra_str = f"{coord.ra.degree:.4f}"
+                dec_str = f"{coord.dec.degree:.4f}"
             except Exception:
-                # Fallback dacă ceva merge prost la conversie
                 ra_str = ra_raw
                 dec_str = dec_raw
             
-            # Construim tuplul final
-            star_id = tic_id
+            # --- 6. Construim obiectul final ---
+            # Folosim TIC ID ca ID unic pentru baza de date
+            star_id = tic_id if tic_id != "N/A" else clean_name
             display_name = f"{clean_name} (Vmag: {round(vmag, 2)})"
             
-            loc_text = f"Lat: {lat}°" if lat else "Global"
-            desc = (f"Clasă spectrală: {sp_text}. Distanță estimată: {distanta_al}.")
+            # Adăugăm informația despre momentul observației în descriere
+            obs_time_str = time.strftime("%H:%M")
+            desc = f"Clasă: {sp_text}. Distanță: {distanta_al}. Observată la ora: {obs_time_str} (RO)."
 
             stars_list.append((
                 star_id,
