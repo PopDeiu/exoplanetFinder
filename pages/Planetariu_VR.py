@@ -20,31 +20,31 @@ ORASE = {
     "Sydney": (-33.8688, 151.2093),
 }
 
-# Initializează session state
-if "latitudine" not in st.session_state:
-    st.session_state.latitudine = 46.1866
-if "longitudine" not in st.session_state:
-    st.session_state.longitudine = 21.3123
-if "latitudine2" not in st.session_state:
-    st.session_state.latitudine2 = 46.1866
-if "longitudine2" not in st.session_state:
-    st.session_state.longitudine2 = 21.3123
+# Initializează session state pentru widget-uri
+if "lat_1" not in st.session_state:
+    st.session_state.lat_1 = 46.1866
+if "lon_1" not in st.session_state:
+    st.session_state.lon_1 = 21.3123
+if "lat_2" not in st.session_state:
+    st.session_state.lat_2 = 46.1866
+if "lon_2" not in st.session_state:
+    st.session_state.lon_2 = 21.3123
 
 def on_city_change_1():
     oras = st.session_state.city_selector_1
     if oras in ORASE and oras != "Personalizat":
-        st.session_state.latitudine, st.session_state.longitudine = ORASE[oras]
+        st.session_state.lat_1, st.session_state.lon_1 = ORASE[oras]
 
 def on_city_change_2():
     oras = st.session_state.city_selector_2
     if oras in ORASE and oras != "Personalizat":
-        st.session_state.latitudine2, st.session_state.longitudine2 = ORASE[oras]
+        st.session_state.lat_2, st.session_state.lon_2 = ORASE[oras]
 
 # ========== FORMULARUL 1 ==========
 st.subheader("Setări Observație")
 st.markdown("Default, locația este setată la Arad, România. Poți ajusta latitudinea și longitudinea pentru a obține stele relevante pentru zona ta.")
 
-st.selectbox(
+oras_selectat_1 = st.selectbox(
     "Alege un oraș presetat:",
     options=list(ORASE.keys()),
     index=0,
@@ -55,10 +55,10 @@ st.selectbox(
 col1, col2 = st.columns(2)
 with col1:
     latitudine = st.number_input("Latitudine (°N)", min_value=-90.0, max_value=90.0,
-        value=st.session_state.latitudine, step=0.1, format="%.4f", key="lat_1")
+        value=st.session_state.lat_1, step=0.1, format="%.4f", key="lat_1")
 with col2:
     longitudine = st.number_input("Longitudine (°E)", min_value=-180.0, max_value=180.0,
-        value=st.session_state.longitudine, step=0.1, format="%.4f", key="lon_1")
+        value=st.session_state.lon_1, step=0.1, format="%.4f", key="lon_1")
 
 bortle_scale = st.selectbox(
     "Selectează Scara Bortle din locația ta:",
@@ -94,7 +94,7 @@ st.markdown("---")
 st.subheader("Setări Observație #2")
 st.markdown("Un al doilea formular pentru a compara setări diferite.")
 
-st.selectbox(
+oras_selectat_2 = st.selectbox(
     "Alege un oraș presetat:",
     options=list(ORASE.keys()),
     index=0,
@@ -105,10 +105,10 @@ st.selectbox(
 col3, col4 = st.columns(2)
 with col3:
     latitudine2 = st.number_input("Latitudine (°N)", min_value=-90.0, max_value=90.0,
-        value=st.session_state.latitudine2, step=0.1, format="%.4f", key="lat_2")
+        value=st.session_state.lat_2, step=0.1, format="%.4f", key="lat_2")
 with col4:
     longitudine2 = st.number_input("Longitudine (°E)", min_value=-180.0, max_value=180.0,
-        value=st.session_state.longitudine2, step=0.1, format="%.4f", key="lon_2")
+        value=st.session_state.lon_2, step=0.1, format="%.4f", key="lon_2")
 
 bortle_scale2 = st.selectbox(
     "Selectează Scara Bortle din locația ta:",
