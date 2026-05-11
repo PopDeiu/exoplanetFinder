@@ -451,3 +451,4 @@ def get_stars_from_simbad(bortle_level, limit=100, lat=None, lon=None, time=None
         import logging
         logging.error(f"Eroare la descărcarea stelelor din SIMBAD: {e}")
         return []
+    

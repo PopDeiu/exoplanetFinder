@@ -12,6 +12,23 @@ from .data_fetchers import get_common_name_from_simbad
 # Încărcăm variabilele de mediu
 load_dotenv()
 
+# În utils.py
+def get_all_settings():
+    conn = get_connection()
+    cursor = conn.cursor(dictionary=True)
+    try:
+        cursor.execute("SELECT setare, valoare FROM setari_aplicatie") # Ajustează numele tabelului dacă diferă
+        rows = cursor.fetchall()
+        # Transformăm lista de rânduri într-un singur dicționar { "latitudine": "46.18", ... }
+        settings_dict = {row['setare']: row['valoare'] for row in rows}
+        return settings_dict
+    except Exception as e:
+        print(f"Eroare la citirea setărilor: {e}")
+        return {}
+    finally:
+        cursor.close()
+        conn.close()
+
 def get_connection():
     """Creează și returnează o conexiune cache-uită la MySQL."""
     try:

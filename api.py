@@ -2,6 +2,7 @@ from fastapi import FastAPI, HTTPException, Query
 from typing import Optional
 from utils import get_all_naked_eye_stars, get_real_stars_by_bortle, get_connection
 from utils import get_saved_location
+from utils import get_all_settings
 
 # Inițializăm aplicația API
 app = FastAPI(
@@ -9,6 +10,29 @@ app = FastAPI(
     description="API pentru extragerea stelelor din baza de date și cataloage NASA",
     version="1.0.0"
 )
+
+@app.get("/api/setari")
+def get_app_settings():
+    """
+    Returnează setările curente ale aplicației: 
+    locația salvată, modul de timp și data observației.
+    """
+    settings = get_all_settings()
+    
+    if not settings:
+        raise HTTPException(status_code=404, detail="Setările nu au putut fi găsite în baza de date.")
+    
+    # Opțional: Putem structura răspunsul mai frumos
+    return {
+        "status": "succes",
+        "date_configurare": {
+            "oras": settings.get("oras", "Arad"), # Fallback la Arad dacă lipsește cheia
+            "latitudine": settings.get("latitudine"),
+            "longitudine": settings.get("longitudine"),
+            "foloseste_data_curenta": settings.get("foloseste_data_curenta"),
+            "data_si_ora_obs": settings.get("data_si_ora_obs")
+        }
+    }
 
 @app.get("/")
 def read_root():
