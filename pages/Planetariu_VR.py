@@ -25,6 +25,19 @@ def load_settings_into_session():
             st.session_state.city_selector = db_settings.get("oras", "Arad")
         if "bortle_slider" not in st.session_state:
             st.session_state.bortle_slider = int(db_settings.get("bortle", 4))
+        if "use_current_time_check" not in st.session_state:
+            val_db = db_settings.get("foloseste_data_curenta", "da")
+            st.session_state.use_current_time_check = True if val_db == "da" else False
+        if "manual_date" not in st.session_state or "manual_time" not in st.session_state:
+            data_db = db_settings.get("data_si_ora_obs")
+            if data_db:
+                try:
+                    dt_obj = datetime.strptime(data_db, "%Y-%m-%d %H:%M:%S")
+                    st.session_state.manual_date = dt_obj.date()
+                    st.session_state.manual_time = dt_obj.time()
+                except:
+                    st.session_state.manual_date = datetime.now(RO_TZ).date()
+                    st.session_state.manual_time = datetime.now(RO_TZ).time()
 
 # Apelăm funcția de încărcare imediat după importuri
 load_settings_into_session()
@@ -74,11 +87,13 @@ with st.expander("1. Sincronizare după Poluare Luminoasă (Bortle)", expanded=T
 
 # ========== FORMULARUL 2: LOCAȚIE ȘI TIMP ==========
 with st.expander("2. Sincronizare după Locație și Timp", expanded=True):
+    use_current_time = st.checkbox(
+        "Folosește data și ora curentă (România)", 
+        key="use_current_time_check"
+    )
     now_ro = datetime.now(RO_TZ)
     
-    # Cheia "check_time" previne resetarea stării checkbox-ului
-    use_current_time = st.checkbox("Folosește data și ora curentă (România)", value=True, key="use_current_time_check")
-    
+    # Cheia "check_time" previne resetarea stării checkbox-ului    
     if not use_current_time:
         col_t1, col_t2 = st.columns(2)
         # Adăugarea cheilor "manual_date" și "manual_time" permite modificarea lunii/anului fără blocaje
