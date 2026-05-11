@@ -7,6 +7,8 @@ from astroquery.skyview import SkyView
 from astroquery.nasa_exoplanet_archive import NasaExoplanetArchive
 import astropy.units as u
 from astropy.coordinates import SkyCoord
+import logging
+import time
 
 # --- FUNCȚII CATALOG TOI (TESS Objects of Interest) ---
 
@@ -286,6 +288,28 @@ def fetch_untested_targets(num_to_sample=100):
     except:
         return pd.DataFrame()
 
+# Funcție dedicată pentru a obține numele din SIMBAD online
+def get_common_name_from_simbad(hip_id):
+    try:
+        # Interogare directă după ID-ul Hipparcos
+        # SIMBAD recunoaște formatul "HIP 12345"
+        Simbad.add_votable_fields('ids')
+        result_table = Simbad.query_object(hip_id)
+
+        if result_table is not None and len(result_table) > 0:
+            all_ids = str(result_table['ids'][0]) 
+            # Split by '|' and look for the one starting with "NAME"
+            for identifier in all_ids.split('|'):
+                if identifier.startswith('NAME'):
+                    name = identifier.replace('NAME', '').strip()
+                    return name
+            return str(result_table['main_id'][0]).strip()
+    except Exception as e:
+        # Dacă dă eroare, returnăm None (nu oprim procesul)
+        logging.error(f"Eroare: {e}")
+        return None
+    return None
+
 def get_common_name(ra_deg, dec_deg):
     """
     Interoghează SIMBAD pentru a găsi un nume comun bazat pe coordonate.
@@ -295,7 +319,7 @@ def get_common_name(ra_deg, dec_deg):
         coord = SkyCoord(ra=ra_deg, dec=dec_deg, unit=(u.degree, u.degree), frame='icrs')
         
         # Căutăm obiecte pe o rază foarte mică (2 secunde de arc)
-        result_table = Simbad.query_region(coord, radius=2 * u.arcsec)
+        result_table = Simbad.query_region(coord, radius=15 * u.arcsec)
         
         if result_table is not None and len(result_table) > 0:
             # Luăm identificatorul principal (coloana MAIN_ID)
@@ -303,8 +327,8 @@ def get_common_name(ra_deg, dec_deg):
             # Curățăm puțin string-ul (uneori vin cu spații extra)
             return main_id.decode('utf-8') if isinstance(main_id, bytes) else main_id
             
-    except Exception:
-        pass
+    except Exception as e:
+        logging.warning(f"Eroare SIMBAD pentru coordonatele {ra_deg}, {dec_deg}: {e}")
     
     return None
 
@@ -336,7 +360,7 @@ def get_stars_from_simbad(bortle_level, limit=100, lat=None, lon=None):
         custom_simbad.ROW_LIMIT = limit
         
         # 1. Cerem EXPLICIT main_id ca să fim siguri că nu e omis
-        custom_simbad.add_votable_fields('main_id', 'flux(V)', 'sp', 'plx')
+        custom_simbad.add_votable_fields('main_id', 'flux(V)', 'sp', 'plx', 'ids')
         
         # 2. Folosim "Vmag" pentru a filtra
         query_string = f"Vmag <= {max_vmag} & dec >= {min_dec}"
@@ -353,13 +377,25 @@ def get_stars_from_simbad(bortle_level, limit=100, lat=None, lon=None):
         
         for row in query_data:
             # --- 1. Numele (luăm MAIN_ID, sau prima coloană ca fallback) ---
-            id_col_name = cols.get('MAIN_ID', query_data.colnames[0])
-            raw_name = row[id_col_name]
-            base_name = raw_name.decode('utf-8').strip() if isinstance(raw_name, bytes) else str(raw_name).strip()
-            clean_name = base_name.replace("NAME ", "").replace("* ", "")
+            #id_col_name = cols.get('MAIN_ID', query_data.colnames[0])
+            #raw_name = row[id_col_name]
+            #base_name = raw_name.decode('utf-8').strip() if isinstance(raw_name, bytes) else str(raw_name).strip()
+            #clean_name = base_name.replace("NAME ", "").replace("* ", "")
+
+            all_ids = str(row['ids'])
+            clean_name = None
+            # Split by '|' and look for the one starting with "NAME"
+            for identifier in all_ids.split('|'):
+                if identifier.startswith('NAME'):
+                    clean_name = identifier.replace('NAME', '').strip()
+                if identifier.startswith('TIC'):
+                    tic_id = identifier.strip()
+            if not clean_name:
+                clean_name = row['main_id']
+
             
             # --- 2. Magnitudinea V ---
-            flux_col = cols.get('FLUX_V')
+            flux_col = cols.get('flux(V)')
             if flux_col and not np.ma.is_masked(row[flux_col]):
                 vmag = float(row[flux_col])
             else:
@@ -403,12 +439,11 @@ def get_stars_from_simbad(bortle_level, limit=100, lat=None, lon=None):
                 dec_str = dec_raw
             
             # Construim tuplul final
-            star_id = f"SIMBAD_{clean_name.replace(' ', '_')}"
+            star_id = tic_id
             display_name = f"{clean_name} (Vmag: {round(vmag, 2)})"
             
             loc_text = f"Lat: {lat}°" if lat else "Global"
-            desc = (f"Bortle: {bortle_level}. Locație: {loc_text}. "
-                    f"Clasă spectrală: {sp_text}. Distanță estimată: {distanta_al}.")
+            desc = (f"Clasă spectrală: {sp_text}. Distanță estimată: {distanta_al}.")
 
             stars_list.append((
                 star_id,

@@ -38,32 +38,32 @@ def get_saved_stars():
         }
         
     # 4. Filtrăm stelele dacă avem latitudinea salvată în DB
-    stele_vizibile = []
+#    stele_vizibile = []
     
-    if lat is not None:
-        min_dec = lat - 90.0
+#    if lat is not None:
+#        min_dec = lat - 90.0
         
-        for stea in stele_toate:
-            try:
-                dec_str = str(stea['declination']).replace('°', '').replace('"', '').replace("'", '').strip()
-                dec_val = float(dec_str)
+#        for stea in stele_toate:
+#            try:
+#                dec_str = str(stea['declination']).replace('°', '').replace('"', '').replace("'", '').strip()
+#                dec_val = float(dec_str)
                 
-                if dec_val > min_dec:
-                    stele_vizibile.append(stea)
-            except ValueError:
-                stele_vizibile.append(stea)
+#                if dec_val > min_dec:
+#                    stele_vizibile.append(stea)
+#            except ValueError:
+#                stele_vizibile.append(stea)
                 
-        stele_finale = stele_vizibile
-    else:
+#        stele_finale = stele_vizibile
+#    else:
         # Dacă nu s-a găsit locația în DB, dăm tot cerul
-        stele_finale = stele_toate
+#        stele_finale = stele_toate
 
     # 5. Răspunsul JSON final
     return {
         "latitudine": lat,
         "longitudine": lon,
-        "total_gasite": len(stele_finale),
-        "date": stele_finale
+        "total_gasite": len(stele_toate),
+        "date": stele_toate
     }
 
 @app.get("/api/stele/nasa/{bortle_level}")
