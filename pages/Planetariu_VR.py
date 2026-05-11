@@ -72,6 +72,16 @@ with st.expander("2. Sincronizare după Locație și Timp", expanded=True):
         final_time = now_ro
         st.info(f"Ora curentă (RO): {final_time.strftime('%H:%M:%S')}")
 
+    viteza_simulare = st.slider(
+        "Viteza simulării (flux temporal):",
+        min_value=-100,
+        max_value=100,
+        value=0,
+        step=1,
+        key="viteza_slider",
+        help="Setează cât de repede se mișcă timpul în simularea VR"
+    )
+
     st.write("---")
     
     # Secțiune Locație
@@ -105,6 +115,7 @@ with st.expander("2. Sincronizare după Locație și Timp", expanded=True):
                 update_app_setting("latitudine", lat_val)
                 update_app_setting("longitudine", lon_val)
                 update_app_setting("oras", nume_oras)
+                update_app_setting("viteza", viteza_simulare)
                 update_app_setting("foloseste_data_curenta", "da" if use_current_time else "nu")
                 update_app_setting("data_si_ora_obs", final_time.strftime("%Y-%m-%d %H:%M:%S"))
                 # ------------------------------------

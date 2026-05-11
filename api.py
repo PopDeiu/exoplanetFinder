@@ -29,6 +29,7 @@ def get_app_settings():
             "oras": settings.get("oras", "Nespecificat"), 
             "latitudine": settings.get("latitudine"),
             "longitudine": settings.get("longitudine"),
+            "viteza": int(settings.get("viteza", 0)),
             "foloseste_data_curenta": settings.get("foloseste_data_curenta"),
             "data_si_ora_obs": settings.get("data_si_ora_obs")
         }
