@@ -96,5 +96,16 @@ with st.expander("2. Sincronizare după Locație și Timp", expanded=True):
             if stars:
                 clear_all_naked_eye_stars()
                 bulk_save_stars(stars)
-                st.success(f"✅ Date actualizate pentru: {lat_val}, {lon_val} la data {final_time.strftime('%d-%m-%Y')}")
+                
+                # --- AICI FACEM MODIFICAREA ÎN DB ---
+                from utils.database import update_app_setting
+                
+                update_app_setting("latitudine", lat_val)
+                update_app_setting("longitudine", lon_val)
+                update_app_setting("foloseste_data_curenta", "da" if use_current_time else "nu")
+                update_app_setting("data_si_ora_obs", final_time.strftime("%Y-%m-%d %H:%M:%S"))
+                # ------------------------------------
+
+                st.success(f"✅ Date salvate în DB pentru {lat_val}, {lon_val}")
                 st.balloons()
+    

@@ -12,6 +12,20 @@ from .data_fetchers import get_common_name_from_simbad
 # Încărcăm variabilele de mediu
 load_dotenv()
 
+def update_app_setting(nume_setare, valoare_noua):
+    conn = get_connection()
+    cursor = conn.cursor()
+    try:
+        # Folosim UPDATE pentru a modifica valoarea unde coloana 'setare' se potrivește
+        sql = "UPDATE setari_aplicatie SET valoare = %s WHERE setare = %s"
+        cursor.execute(sql, (str(valoare_noua), nume_setare))
+        conn.commit()
+    except Exception as e:
+        print(f"Eroare la update DB: {e}")
+    finally:
+        cursor.close()
+        conn.close()
+
 # În utils.py
 def get_all_settings():
     conn = get_connection()
