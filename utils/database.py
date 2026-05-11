@@ -17,7 +17,7 @@ def update_app_setting(nume_setare, valoare_noua):
     cursor = conn.cursor()
     try:
         # Folosim UPDATE pentru a modifica valoarea unde coloana 'setare' se potrivește
-        sql = "UPDATE setari_aplicatie SET valoare = %s WHERE setare = %s"
+        sql = "UPDATE setariVR SET valoare = %s WHERE setare = %s"
         cursor.execute(sql, (str(valoare_noua), nume_setare))
         conn.commit()
     except Exception as e:
