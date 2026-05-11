@@ -26,7 +26,7 @@ def get_app_settings():
     return {
         "status": "succes",
         "date_configurare": {
-            "oras": settings.get("oras", "Arad"), # Fallback la Arad dacă lipsește cheia
+            "oras": settings.get("oras"), # Fallback la Arad dacă lipsește cheia
             "latitudine": settings.get("latitudine"),
             "longitudine": settings.get("longitudine"),
             "foloseste_data_curenta": settings.get("foloseste_data_curenta"),
