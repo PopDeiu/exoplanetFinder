@@ -2,7 +2,7 @@ from fastapi import FastAPI, HTTPException, Query
 from typing import Optional
 from utils import get_all_naked_eye_stars, get_real_stars_by_bortle, get_connection
 from utils import get_saved_location
-from utils import get_all_settings
+from utils import get_app_settings
 
 # Inițializăm aplicația API
 app = FastAPI(
