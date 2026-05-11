@@ -17,7 +17,7 @@ def get_app_settings():
     Returnează setările curente ale aplicației: 
     locația salvată, modul de timp și data observației.
     """
-    settings = get_all_settings()
+    settings = get_app_settings()
     
     if not settings:
         raise HTTPException(status_code=404, detail="Setările nu au putut fi găsite în baza de date.")
