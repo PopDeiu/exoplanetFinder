@@ -14,9 +14,8 @@ set_galaxy_background("stellar")
 
 st.title("Planetariu VR")
 
-# --- DATE PREDEFINITE ---
+# --- ORASE PREDEFINITE (Fără "Personalizat") ---
 ORASE = {
-    "Personalizat": (46.1866, 21.3123),
     "Arad": (46.1866, 21.3123),
     "București": (44.4268, 26.1025),
     "New York (NYC)": (40.7128, -74.0060),
@@ -31,9 +30,9 @@ if "lon" not in st.session_state:
     st.session_state.lon = 21.3123
 
 def on_city_change():
-    """Actualizează instantaneu valorile din state când orașul este schimbat"""
+    """Actualizează coordonatele instant când orașul este schimbat"""
     oras = st.session_state.city_selector
-    if oras in ORASE and oras != "Personalizat":
+    if oras in ORASE:
         st.session_state.lat = ORASE[oras][0]
         st.session_state.lon = ORASE[oras][1]
 
@@ -58,14 +57,16 @@ with st.expander("1. Sincronizare după Poluare Luminoasă (Bortle)", expanded=T
 
 # ========== FORMULARUL 2: LOCAȚIE ȘI TIMP ==========
 with st.expander("2. Sincronizare după Locație și Timp", expanded=True):
-    # Secțiune Timp
     now_ro = datetime.now(RO_TZ)
-    use_current_time = st.checkbox("Folosește data și ora curentă (România)", value=True)
+    
+    # Cheia "check_time" previne resetarea stării checkbox-ului
+    use_current_time = st.checkbox("Folosește data și ora curentă (România)", value=True, key="use_current_time_check")
     
     if not use_current_time:
-        c1, c2 = st.columns(2)
-        d = c1.date_input("Data", now_ro.date())
-        t = c2.time_input("Ora", now_ro.time())
+        col_t1, col_t2 = st.columns(2)
+        # Adăugarea cheilor "manual_date" și "manual_time" permite modificarea lunii/anului fără blocaje
+        d = col_t1.date_input("Data", value=now_ro.date(), key="manual_date")
+        t = col_t2.time_input("Ora", value=now_ro.time(), key="manual_time")
         final_time = RO_TZ.localize(datetime.combine(d, t))
     else:
         final_time = now_ro
@@ -77,24 +78,23 @@ with st.expander("2. Sincronizare după Locație și Timp", expanded=True):
     st.selectbox(
         "Alege un oraș preset:", 
         options=list(ORASE.keys()), 
-        index=1, 
+        index=0, # Arad este acum primul
         key="city_selector", 
-        on_change=on_city_change # Trigger-ul pentru actualizare instantă
+        on_change=on_city_change
     )
 
     col1, col2 = st.columns(2)
-    # ATENȚIE: 'value' este legat direct de st.session_state
+    # Folosim direct session_state pentru a permite și modificarea manuală a coordonatelor
     lat_val = col1.number_input("Latitudine (°N)", -90.0, 90.0, key="lat", format="%.4f")
     lon_val = col2.number_input("Longitudine (°E)", -180.0, 180.0, key="lon", format="%.4f")
 
     if st.button("Sincronizează Locație & Timp", type="primary", use_container_width=True):
         with st.spinner("Sincronizare în curs..."):
             current_bortle = st.session_state.get("bortle_slider", 4)
-            # Folosim direct valorile din inputs
             stars = get_stars_from_simbad(current_bortle, lat=lat_val, lon=lon_val, time=final_time)
             
             if stars:
                 clear_all_naked_eye_stars()
                 bulk_save_stars(stars)
-                st.success(f"✅ Locație actualizată: {lat_val}, {lon_val}")
+                st.success(f"✅ Date actualizate pentru: {lat_val}, {lon_val} la data {final_time.strftime('%d-%m-%Y')}")
                 st.balloons()
