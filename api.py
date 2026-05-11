@@ -2,7 +2,7 @@ from fastapi import FastAPI, HTTPException, Query
 from typing import Optional
 from utils import get_all_naked_eye_stars, get_real_stars_by_bortle, get_connection
 from utils import get_saved_location
-from utils import get_app_settings
+from utils.database import get_all_settings
 
 # Inițializăm aplicația API
 app = FastAPI(
@@ -12,12 +12,12 @@ app = FastAPI(
 )
 
 @app.get("/api/setari")
-def get_app_settings():
+def get_all_settings():
     """
     Returnează setările curente ale aplicației: 
     locația salvată, modul de timp și data observației.
     """
-    settings = get_app_settings()
+    settings = get_all_settings()
     
     if not settings:
         raise HTTPException(status_code=404, detail="Setările nu au putut fi găsite în baza de date.")
