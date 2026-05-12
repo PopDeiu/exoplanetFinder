@@ -335,7 +335,7 @@ def get_common_name(ra_deg, dec_deg):
 from astroquery.simbad import Simbad
 import numpy as np
 
-def get_stars_from_simbad(bortle_level, limit=100, lat=None, lon=None, time=None):
+def get_stars_from_simbad(bortle_level, limit=10000, lat=None, lon=None, time=None):
     from astroquery.simbad import Simbad
     import numpy as np
     from datetime import datetime
@@ -356,12 +356,8 @@ def get_stars_from_simbad(bortle_level, limit=100, lat=None, lon=None, time=None
         time = datetime.now(ro_tz)
     
     # --- LOGICA DE VIZIBILITATE PE BAZA LOCAȚIEI ---
-    min_dec = -90.0 
-    max_dec = 90.0  
-    
-    if lat is not None:
-        # Filtrare grosieră: O stea e vizibilă dacă DEC > (Latitudine - 90)
-        min_dec = float(lat) - 90.0
+    # Se putea filtra după dec >= (lat - 90) pentru a include doar stele vizibile,
+    # dar am eliminat filtrul pentru a salva toate stelele din Bortle-ul ales.
         
     try:
         custom_simbad = Simbad()
@@ -370,8 +366,8 @@ def get_stars_from_simbad(bortle_level, limit=100, lat=None, lon=None, time=None
         # Adăugăm câmpurile necesare
         custom_simbad.add_votable_fields('main_id', 'flux(V)', 'sp', 'plx', 'ids', 'ra', 'dec')
         
-        # Query către SIMBAD folosind Vmag și Declinația minimă
-        query_string = f"Vmag <= {max_vmag} & dec >= {min_dec}"
+        # Query către SIMBAD doar după magnitudine (fără filtru de declinație)
+        query_string = f"Vmag <= {max_vmag}"
         query_data = custom_simbad.query_criteria(query_string)
         
         if query_data is None or len(query_data) == 0:
@@ -380,20 +376,71 @@ def get_stars_from_simbad(bortle_level, limit=100, lat=None, lon=None, time=None
         stars_list = []
         cols = {c.upper(): c for c in query_data.colnames}
         
+        # Mărire Bayer → literă grecească
+        bayer_map = {
+            'alf': 'α', 'bet': 'β', 'gam': 'γ', 'del': 'δ', 'eps': 'ε',
+            'zet': 'ζ', 'eta': 'η', 'the': 'θ', 'iot': 'ι', 'kap': 'κ',
+            'lam': 'λ', 'mu': 'μ', 'nu': 'ν', 'xi': 'ξ', 'omi': 'ο',
+            'pi': 'π', 'rho': 'ρ', 'sig': 'σ', 'tau': 'τ', 'ups': 'υ',
+            'phi': 'φ', 'chi': 'χ', 'psi': 'ψ', 'ome': 'ω'
+        }
+
+        def extract_best_name(ids_str, main_id):
+            identifiers = ids_str.split('|')
+            found = None
+
+            # Prioritate 1: Nume comun (NAME)
+            for id_ in identifiers:
+                if id_.startswith('NAME'):
+                    found = id_.replace('NAME', '').strip()
+                    return found
+
+            # Prioritate 2: Bayer / Flamsteed (*)
+            for id_ in identifiers:
+                if id_.startswith('* '):
+                    raw = id_[2:].strip()
+                    parts = raw.split()
+                    if parts and parts[0] in bayer_map:
+                        parts[0] = bayer_map[parts[0]]
+                        found = ' '.join(parts)
+                    else:
+                        found = raw
+                    return found
+
+            # Prioritate 3: Stea variabilă (V*)
+            for id_ in identifiers:
+                if id_.startswith('V* '):
+                    found = id_[3:].strip()
+                    return found
+
+            # Prioritate 4: HD
+            for id_ in identifiers:
+                if id_.startswith('HD '):
+                    found = id_.strip()
+                    return found
+
+            # Prioritate 5: HIP
+            for id_ in identifiers:
+                if id_.startswith('HIP '):
+                    found = id_.strip()
+                    return found
+
+            # Fallback: main_id (fără prefixul * )
+            raw = str(main_id)
+            if raw.startswith('* '):
+                raw = raw[2:].strip()
+            return raw
+
         for row in query_data:
             # --- 1. Extragere Nume și TIC ID ---
             all_ids = str(row['ids'])
-            clean_name = None
             tic_id = "N/A"
-            
+
             for identifier in all_ids.split('|'):
-                if identifier.startswith('NAME'):
-                    clean_name = identifier.replace('NAME', '').strip()
                 if 'TIC' in identifier:
                     tic_id = identifier.strip()
-            
-            if not clean_name:
-                clean_name = str(row['main_id'])
+
+            clean_name = extract_best_name(all_ids, row['main_id'])
 
             # --- 2. Magnitudinea V ---
             flux_col = cols.get('FLUX(V)')
@@ -406,18 +453,47 @@ def get_stars_from_simbad(bortle_level, limit=100, lat=None, lon=None, time=None
                 raw_sp = row[sp_col]
                 sp_text = raw_sp.decode('utf-8').strip() if isinstance(raw_sp, bytes) else str(raw_sp).strip()
 
-            # --- 4. Distanța ---
+            # --- 4. Distanța + luminozitate ---
             plx_col = cols.get('PLX_VALUE')
             distanta_al = "Necunoscută"
+            luminozitate = None
             if plx_col and not np.ma.is_masked(row[plx_col]) and float(row[plx_col]) > 0:
                 plx_mas = float(row[plx_col])
                 distanta_pc = 1000.0 / plx_mas
                 distanta_al = f"{round(distanta_pc * 3.26156, 1)} ani-lumină"
+                Mv = vmag - 5 * np.log10(distanta_pc / 10)
+                luminozitate = 10 ** ((4.74 - Mv) / 2.5)
 
-            # --- 5. Coordonate (Conversie în grade) ---
+            # --- 5. Proprietăți fizice din clasa spectrală ---
+            class sp_data:
+                color = "Necunoscută"
+                masa = None
+                raza = None
+
+            if sp_text and sp_text != "Necunoscută":
+                prima_litera = sp_text[0].upper()
+                culori = {'O': 'Albastră', 'B': 'Albastru-albă', 'A': 'Albă',
+                          'F': 'Galben-albă', 'G': 'Galbenă', 'K': 'Portocalie', 'M': 'Roșie'}
+                mase = {'O': 20, 'B': 5, 'A': 2.5, 'F': 1.4, 'G': 1.0, 'K': 0.7, 'M': 0.3}
+                raze = {'O': 10, 'B': 4, 'A': 2.0, 'F': 1.3, 'G': 1.0, 'K': 0.7, 'M': 0.4}
+                sp_data.color = culori.get(prima_litera, 'Necunoscută')
+                sp_data.masa = mase.get(prima_litera)
+                sp_data.raza = raze.get(prima_litera)
+
+                if 'I' in sp_text and 'III' not in sp_text and 'II' not in sp_text:
+                    if sp_data.masa:
+                        sp_data.masa *= 3
+                    if sp_data.raza:
+                        sp_data.raza *= 10
+                elif 'III' in sp_text:
+                    if sp_data.masa:
+                        sp_data.masa *= 1.5
+                    if sp_data.raza:
+                        sp_data.raza *= 5
+
+            # --- 6. Coordonate ---
             ra_raw = str(row['ra'])
             dec_raw = str(row['dec'])
-            
             try:
                 from astropy.coordinates import SkyCoord
                 import astropy.units as u
@@ -427,15 +503,29 @@ def get_stars_from_simbad(bortle_level, limit=100, lat=None, lon=None, time=None
             except Exception:
                 ra_str = ra_raw
                 dec_str = dec_raw
-            
-            # --- 6. Construim obiectul final ---
-            # Folosim TIC ID ca ID unic pentru baza de date
+
+            # --- 7. Construim descrierea ---
             star_id = tic_id if tic_id != "N/A" else clean_name
-            display_name = f"{clean_name} (Vmag: {round(vmag, 2)})"
-            
-            # Adăugăm informația despre momentul observației în descriere
-            obs_time_str = time.strftime("%H:%M")
-            desc = f"Clasă: {sp_text}. Distanță: {distanta_al}. Observată la ora: {obs_time_str} (RO)."
+            display_name = clean_name
+
+            desc_parts = [f"Magnitudine: {round(vmag, 2)}"]
+            if distanta_al != "Necunoscută":
+                desc_parts.append(f"Distanță: {distanta_al}")
+            if sp_data.color != "Necunoscută":
+                desc_parts.append(f"Culoare: {sp_data.color}")
+            if luminozitate:
+                if luminozitate >= 1000:
+                    desc_parts.append(f"Luminozitate: ~{luminozitate:.0f}× Soarele")
+                elif luminozitate >= 1:
+                    desc_parts.append(f"Luminozitate: ~{luminozitate:.1f}× Soarele")
+                else:
+                    desc_parts.append(f"Luminozitate: ~{luminozitate:.2f}× Soarele")
+            if sp_data.masa:
+                desc_parts.append(f"Masă: ~{sp_data.masa} M☉")
+            if sp_data.raza:
+                desc_parts.append(f"Rază: ~{sp_data.raza} R☉")
+            desc_parts.append(f"Clasă spectrală: {sp_text}")
+            desc = "\n".join(desc_parts)
 
             stars_list.append((
                 star_id,
