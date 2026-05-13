@@ -443,7 +443,11 @@ def get_stars_from_simbad(bortle_level, limit=10000, lat=None, lon=None, time=No
             clean_name = extract_best_name(all_ids, row['main_id'])
 
             # --- 2. Magnitudinea V ---
-            flux_col = cols.get('FLUX(V)')
+            flux_col = None
+            for candidate in ['FLUX_V', 'FLUX(V)', 'V', 'VMAG']:
+                if candidate in cols:
+                    flux_col = cols[candidate]
+                    break
             vmag = float(row[flux_col]) if flux_col and not np.ma.is_masked(row[flux_col]) else max_vmag
                 
             # --- 3. Clasa spectrală ---
