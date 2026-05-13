@@ -22,7 +22,8 @@ from .data_fetchers import (
     fetch_star_data, 
     get_star_parameters, 
     fetch_catalog_targets, 
-    fetch_untested_targets
+    fetch_untested_targets,
+    get_stars_with_confirmed_planets
 )
 
 from .analysis_engine import process_selected_data, generate_pdf_report

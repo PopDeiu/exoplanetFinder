@@ -1,7 +1,7 @@
 import streamlit as st
 from datetime import datetime
 import pytz
-from utils.data_fetchers import get_stars_from_simbad
+from utils.data_fetchers import get_stars_from_simbad, get_stars_with_confirmed_planets
 from utils.database import clear_all_naked_eye_stars, bulk_save_stars, get_all_settings, update_app_setting
 from utils.ui_styles import set_galaxy_background, set_sidebar_style
 
@@ -145,4 +145,21 @@ with st.expander("2. Sincronizare după Locație și Timp", expanded=True):
 
                 st.success(f"✅ Date salvate în DB pentru {lat_val}, {lon_val}")
                 st.balloons()
+
+# ========== FORMULARUL 3: EXOPLANETE CONFIRMATE ==========
+with st.expander("3. Stele cu exoplanete TESS confirmate", expanded=True):
+    st.markdown(
+        "Adaugă în baza de date **toate** stelele care au cel puțin o exoplanetă "
+        "confirmată de TESS, indiferent de magnitudine sau vizibilitate."
+    )
+    if st.button("Descarcă și salvează stele cu exoplanete", type="primary", use_container_width=True):
+        with st.spinner("Se descarcă catalogul TOI și se salvează stelele..."):
+            stars = get_stars_with_confirmed_planets()
+            if stars:
+                clear_all_naked_eye_stars()
+                bulk_save_stars(stars)
+                st.success(f"✅ S-au salvat {len(stars)} stele cu exoplanete TESS confirmate.")
+                st.balloons()
+            else:
+                st.warning("Nu s-au găsit stele cu exoplanete confirmate.")
     

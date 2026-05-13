@@ -53,6 +53,63 @@ def search_toi_catalog(dispositions=None, radius_range=None, period_range=None, 
     
     return filtered_df.reset_index(drop=True)
 
+def get_stars_with_confirmed_planets():
+    """Returnează lista de stele cu exoplanete TESS confirmate (indiferent de magnitudine)."""
+    toi_df = get_toi_catalog()
+    if toi_df.empty:
+        return []
+
+    disp_col = next((c for c in ['TFOPWG Disposition', 'Disposition'] if c in toi_df.columns), None)
+    if not disp_col:
+        return []
+
+    cp_df = toi_df[toi_df[disp_col].str.upper() == 'CP'].copy()
+    if cp_df.empty:
+        return []
+
+    cp_df = cp_df.drop_duplicates(subset=['TIC ID'])
+    planet_counts = toi_df[toi_df[disp_col].str.upper() == 'CP']['TIC ID'].value_counts().to_dict()
+
+    ra_col = next((c for c in ['RA', 'RA (deg)', 'ra'] if c in cp_df.columns), None)
+    dec_col = next((c for c in ['Dec', 'Dec (deg)', 'dec'] if c in cp_df.columns), None)
+    tmag_col = next((c for c in ['TMAG', 'Tmag', 'TESS Mag', 'TESS mag'] if c in cp_df.columns), None)
+
+    stars_list = []
+    for _, row in cp_df.iterrows():
+        tic_id_val = row['TIC ID']
+        if pd.isna(tic_id_val):
+            continue
+
+        tic_id_int = int(tic_id_val)
+        tic_id_str = f"TIC {tic_id_int}"
+
+        toi_id = row.get('TOI')
+        name = f"TOI {int(toi_id)}" if pd.notna(toi_id) else tic_id_str
+
+        ra_raw = str(row[ra_col]) if ra_col and pd.notna(row.get(ra_col)) else ""
+        dec_raw = str(row[dec_col]) if dec_col and pd.notna(row.get(dec_col)) else ""
+        try:
+            from astropy.coordinates import SkyCoord
+            import astropy.units as u
+            coord = SkyCoord(ra_raw, dec_raw, unit=(u.hourangle, u.deg))
+            ra = f"{coord.ra.degree:.4f}"
+            dec = f"{coord.dec.degree:.4f}"
+        except Exception:
+            ra = ra_raw
+            dec = dec_raw
+        tmag = row[tmag_col] if tmag_col and pd.notna(row.get(tmag_col)) else None
+
+        np = planet_counts.get(tic_id_int, 1)
+        desc_parts = [f"Exoplanetă TESS confirmată" if np == 1 else f"{np} exoplanete TESS confirmate"]
+        if tmag is not None:
+            desc_parts.append(f"Magnitudine TESS: {tmag:.2f}")
+        desc = "\n".join(desc_parts)
+
+        stars_list.append((tic_id_str, name, ra, dec, desc))
+
+    return stars_list
+
+
 # --- FUNCȚII DATE STELARE ---
 
 @st.cache_data(ttl="7d")
@@ -442,6 +499,8 @@ def get_stars_from_simbad(bortle_level, limit=10000, lat=None, lon=None, time=No
 
             clean_name = extract_best_name(all_ids, row['main_id'])
 
+            is_constellation_star = any(id_.startswith('* ') for id_ in all_ids.split('|'))
+
             # --- 2. Magnitudinea V ---
             flux_col = None
             for candidate in ['FLUX_V', 'FLUX(V)', 'V', 'VMAG']:
@@ -498,12 +557,14 @@ def get_stars_from_simbad(bortle_level, limit=10000, lat=None, lon=None, time=No
             # --- 6. Coordonate ---
             ra_raw = str(row['ra'])
             dec_raw = str(row['dec'])
+            constellation = None
             try:
                 from astropy.coordinates import SkyCoord
                 import astropy.units as u
                 coord = SkyCoord(ra_raw, dec_raw, unit=(u.hourangle, u.deg))
                 ra_str = f"{coord.ra.degree:.4f}"
                 dec_str = f"{coord.dec.degree:.4f}"
+                constellation = coord.get_constellation()
             except Exception:
                 ra_str = ra_raw
                 dec_str = dec_raw
@@ -529,6 +590,8 @@ def get_stars_from_simbad(bortle_level, limit=10000, lat=None, lon=None, time=No
             if sp_data.raza:
                 desc_parts.append(f"Rază: ~{sp_data.raza} R☉")
             desc_parts.append(f"Clasă spectrală: {sp_text}")
+            if constellation and is_constellation_star:
+                desc_parts.append(f"Constelație: {constellation}")
             desc = "\n".join(desc_parts)
 
             stars_list.append((
