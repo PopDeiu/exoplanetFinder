@@ -106,7 +106,7 @@ with st.expander("2. Sincronizare după Locație și Timp", expanded=True):
 
     viteza_simulare = st.slider(
         "Viteza simulării:",
-        -100, 100, 
+        -1000, 1000, 
         key="viteza_slider" 
     )
 
