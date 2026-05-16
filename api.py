@@ -1,8 +1,13 @@
 from fastapi import FastAPI, HTTPException, Query
 from typing import Optional
-from utils import get_all_naked_eye_stars, get_real_stars_by_bortle, get_connection
+from pydantic import BaseModel
+from utils import get_all_naked_eye_stars, get_real_stars_by_bortle, get_connection, update_app_setting
 from utils import get_saved_location
 from utils.database import get_all_settings
+
+
+class SteaCurentaRequest(BaseModel):
+    TIC_ID: str
 
 # Inițializăm aplicația API
 app = FastAPI(
@@ -91,6 +96,11 @@ def get_saved_stars():
         "total_gasite": len(stele_toate),
         "date": stele_toate
     }
+
+@app.post("/api/stea_curenta")
+def set_current_star(request: SteaCurentaRequest):
+    update_app_setting("stea_curenta", request.TIC_ID)
+    return {"status": "succes", "TIC_ID": request.TIC_ID}
 
 @app.get("/api/stele/nasa/{bortle_level}")
 def get_nasa_stars_by_bortle(

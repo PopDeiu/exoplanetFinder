@@ -3,7 +3,7 @@
 import streamlit as st
 import lightkurve as lk
 from utils import process_selected_data, set_galaxy_background, set_sidebar_style, init_session_state, generate_pdf_report
-from utils.database import save_star_observation
+from utils.database import save_star_observation, get_all_settings
 
 st.set_page_config(
     page_title="Caută o stea",
@@ -40,7 +40,8 @@ with st.expander("Cum funcționează această pagină", expanded=False):
         """
     )
 st.markdown("Introdu numele unei stele sau ID‑ul ei pentru a căuta tranzite de exoplanete. Poți ajusta toți parametrii de analiză din pagina **Setări**.")
-star_id_input = st.text_input(label="Introdu numele sau ID‑ul unei stele", value="TIC 261136679", help="Încearcă să copiezi un „ID căutabil” din paginile de explorare!")
+default_star = get_all_settings().get("stea_curenta", "TIC 261136679")
+star_id_input = st.text_input(label="Introdu numele sau ID‑ul unei stele", value=default_star, help="Încearcă să copiezi un „ID căutabil” din paginile de explorare!")
 st.info(f"Setări active: Binning: {st.session_state.bin_size} min | "
         f"Sigma: {st.session_state.sigma_val} | "
         f"Periodă: {st.session_state.period_range[0]}-{st.session_state.period_range[1]} zile")

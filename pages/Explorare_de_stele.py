@@ -3,6 +3,7 @@
 import streamlit as st
 import numpy as np
 from utils import fetch_star_data, set_galaxy_background, set_sidebar_style
+from utils.database import get_all_settings
 from astroquery.skyview import SkyView
 from astropy.wcs import WCS
 
@@ -97,9 +98,10 @@ def fetch_skyview_image_vechi(position: str, survey: str, pixels: int = PIXELS_D
 # =========================
 # Input: nume / TIC
 # =========================
+default_star = get_all_settings().get("stea_curenta", "TRAPPIST-1")
 star_name_input = st.text_input(
     label="Introdu un nume de stea sau un ID TIC",
-    value=st.session_state.get("star_name_input", "TRAPPIST-1"),
+    value=st.session_state.get("star_name_input", default_star),
     key="star_name_input",
     help=(
         "Poți introduce nume precum „Kepler-10”, „TRAPPIST-1” sau un ID TIC "
