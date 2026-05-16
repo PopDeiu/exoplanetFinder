@@ -14,14 +14,15 @@ load_dotenv()
 
 def update_app_setting(nume_setare, valoare_noua):
     conn = get_connection()
+    if not conn:
+        st.error("Nu s-a putut conecta la DB pentru a salva setarea.")
+        return
     cursor = conn.cursor()
     try:
-        # Folosim UPDATE pentru a modifica valoarea unde coloana 'setare' se potrivește
-        sql = "UPDATE setariVR SET valoare = %s WHERE setare = %s"
-        cursor.execute(sql, (str(valoare_noua), nume_setare))
+        cursor.execute("UPDATE setariVR SET valoare = %s WHERE setare = %s", (str(valoare_noua), nume_setare))
         conn.commit()
     except Exception as e:
-        print(f"Eroare la update DB: {e}")
+        st.error(f"Eroare la update DB: {e}")
     finally:
         cursor.close()
         conn.close()
@@ -29,15 +30,17 @@ def update_app_setting(nume_setare, valoare_noua):
 # În utils.py
 def get_all_settings():
     conn = get_connection()
+    if not conn:
+        st.error("Nu s-a putut conecta la DB pentru a citi setările.")
+        return {}
     cursor = conn.cursor(dictionary=True)
     try:
-        cursor.execute("SELECT setare, valoare FROM setariVR") # Ajustează numele tabelului dacă diferă
+        cursor.execute("SELECT setare, valoare FROM setariVR")
         rows = cursor.fetchall()
-        # Transformăm lista de rânduri într-un singur dicționar { "latitudine": "46.18", ... }
         settings_dict = {row['setare']: row['valoare'] for row in rows}
         return settings_dict
     except Exception as e:
-        print(f"Eroare la citirea setărilor: {e}")
+        st.error(f"Eroare la citirea setărilor: {e}")
         return {}
     finally:
         cursor.close()

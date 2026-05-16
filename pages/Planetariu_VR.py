@@ -28,6 +28,9 @@ def load_settings_into_session():
         if "use_current_time_check" not in st.session_state:
             val_db = db_settings.get("foloseste_data_curenta", "da")
             st.session_state.use_current_time_check = True if val_db == "da" else False
+        if "afisare_constelatii" not in st.session_state:
+            val_db = db_settings.get("afisare_constelatii", "da")
+            st.session_state.afisare_constelatii = True if val_db == "da" else False
         if "manual_date" not in st.session_state or "manual_time" not in st.session_state:
             data_db = db_settings.get("data_si_ora_obs")
             if data_db:
@@ -124,27 +127,13 @@ with st.expander("2. Sincronizare după Locație și Timp", expanded=True):
 
 
     if st.button("Sincronizează Locație & Timp", type="primary", use_container_width=True):
-        with st.spinner("Sincronizare în curs..."):
-            current_bortle = st.session_state.get("bortle_slider", 4)
-            stars = get_stars_from_simbad(current_bortle, lat=lat_val, lon=lon_val, time=final_time)
-            
-            if stars:
-                clear_all_naked_eye_stars()
-                bulk_save_stars(stars)
-                
-                # --- AICI FACEM MODIFICAREA ÎN DB ---
-                from utils.database import update_app_setting
-                
-                update_app_setting("latitudine", lat_val)
-                update_app_setting("longitudine", lon_val)
-                update_app_setting("oras", nume_oras)
-                update_app_setting("viteza", viteza_simulare)
-                update_app_setting("foloseste_data_curenta", "da" if use_current_time else "nu")
-                update_app_setting("data_si_ora_obs", final_time.strftime("%Y-%m-%d %H:%M:%S"))
-                # ------------------------------------
-
-                st.success(f"✅ Date salvate în DB pentru {lat_val}, {lon_val}")
-                st.balloons()
+        update_app_setting("latitudine", lat_val)
+        update_app_setting("longitudine", lon_val)
+        update_app_setting("oras", nume_oras)
+        update_app_setting("viteza", viteza_simulare)
+        update_app_setting("foloseste_data_curenta", "da" if use_current_time else "nu")
+        update_app_setting("data_si_ora_obs", final_time.strftime("%Y-%m-%d %H:%M:%S"))
+        st.success(f"✅ Date salvate în DB pentru {lat_val}, {lon_val}")
 
 # ========== FORMULARUL 3: EXOPLANETE CONFIRMATE ==========
 with st.expander("3. Stele cu exoplanete TESS confirmate", expanded=True):
@@ -162,4 +151,17 @@ with st.expander("3. Stele cu exoplanete TESS confirmate", expanded=True):
                 st.balloons()
             else:
                 st.warning("Nu s-au găsit stele cu exoplanete confirmate.")
+
+def on_constelatii_change():
+    update_app_setting("afisare_constelatii", "da" if st.session_state.afisare_constelatii else "nu")
+
+# ========== FORMULARUL 4: SETĂRI AFIȘARE ==========
+with st.expander("4. Setări afișare", expanded=True):
+    st.checkbox(
+        "Afisare Constelatii",
+        key="afisare_constelatii",
+        on_change=on_constelatii_change
+    )
+    if st.button("Sincronizează", key="sync_constelatii", use_container_width=True):
+        update_app_setting("afisare_constelatii", "da" if st.session_state.afisare_constelatii else "nu")
     

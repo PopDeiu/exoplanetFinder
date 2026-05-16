@@ -31,7 +31,8 @@ def get_app_settings():
             "longitudine": settings.get("longitudine"),
             "viteza": int(settings.get("viteza", 0)),
             "foloseste_data_curenta": settings.get("foloseste_data_curenta"),
-            "data_si_ora_obs": settings.get("data_si_ora_obs")
+            "data_si_ora_obs": settings.get("data_si_ora_obs"),
+            "afisare_constelatii": settings.get("afisare_constelatii", "da")
         }
     }
 
