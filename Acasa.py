@@ -197,13 +197,13 @@ with col2:
     )
     st.subheader("Tehnologii utilizate :")
     st.markdown(
-        """
-        Biblioteca Python Streamlit;
-        Biblioteca Python Lightkurve;
-        Biblioteca Python Astroquery.
-        -Unity / C#
-        -Meta Quest 3
-        -FastAPI (Python)
-        """
-    )
+            """
+            - Biblioteca Python Streamlit;
+            - Biblioteca Python Lightkurve;
+            - Biblioteca Python Astroquery.
+            - Unity / C#
+            - Meta Quest 3
+            - FastAPI (Python)
+            """
+        )
     
