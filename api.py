@@ -7,7 +7,7 @@ from utils.database import get_all_settings
 
 
 class SteaCurentaRequest(BaseModel):
-    TIC_ID: str
+    TIC_ID: str = "TIC" str
 
 # Inițializăm aplicația API
 app = FastAPI(
