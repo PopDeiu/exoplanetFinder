@@ -7,7 +7,7 @@ from utils.database import get_all_settings
 
 
 class SteaCurentaRequest(BaseModel):
-    TIC_ID: str
+    TIC_ID: str = "TIC"
 
 # Inițializăm aplicația API
 app = FastAPI(
@@ -99,8 +99,13 @@ def get_saved_stars():
 
 @app.post("/api/stea_curenta")
 def set_current_star(request: SteaCurentaRequest):
-    update_app_setting("stea_curenta", request.TIC_ID)
-    return {"status": "succes", "TIC_ID": request.TIC_ID}
+    tic_id = request.TIC_ID.strip()
+    if tic_id.upper().startswith("TIC ") or tic_id.upper() == "TIC":
+        pass
+    else:
+        tic_id = f"TIC {tic_id}"
+    update_app_setting("stea_curenta", tic_id)
+    return {"status": "succes", "TIC_ID": tic_id}
 
 @app.get("/api/stele/nasa/{bortle_level}")
 def get_nasa_stars_by_bortle(

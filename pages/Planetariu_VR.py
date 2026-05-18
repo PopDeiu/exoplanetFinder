@@ -54,6 +54,11 @@ ORASE = {
     "New York (NYC)": (40.7128, -74.0060),
     "Tokyo": (35.6762, 139.6503),
     "Londra": (51.5074, -0.1278),
+    "Sydney": (-33.8688, 151.2093),
+    "Buenos Aires": (-34.6037, -58.3816),
+    "Capetown": (-33.9249, 18.4241),
+    "Mexico City": (19.4326, -99.1332),
+    "Iași": (47.1585, 27.6014),
 }
 
 # Initializare Session State
