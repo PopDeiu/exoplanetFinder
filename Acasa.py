@@ -168,7 +168,7 @@ with col1:
          - Periodograma - Un grafic care arată puterea semnalului si cauta varful cel mai mare ce indică cei mai probabili candidați .
         """
     )
-    st.subheader("“Împăturirea” curbei de lumină (Phase Folding))")
+    st.subheader("“Împăturirea” curbei de lumină (Phase Folding)")
     st.markdown(
         """
          - Suprapunerea tuturor tranzitelor detectate
@@ -193,6 +193,17 @@ with col2:
         """
         Datele provin din arhive publice NASA (TESS, Kepler) accesate prin biblioteca `lightkurve` și servicii
         precum MAST și ExoFOP. Ai nevoie de conexiune la internet pentru a rula interogările.
+        """
+    )
+    st.subheader("Tehnologii utilizate :")
+    st.markdown(
+        """
+        Biblioteca Python Streamlit;
+        Biblioteca Python Lightkurve;
+        Biblioteca Python Astroquery.
+        -Unity / C#
+        -Meta Quest 3
+        -FastAPI (Python)
         """
     )
     
