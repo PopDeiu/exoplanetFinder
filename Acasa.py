@@ -134,14 +134,33 @@ with col1:
         """
     )
 
-    st.subheader("Pornire rapidă")
+    st.subheader("METODA TRANZITULUI:")
+    st.markdown(
+            """
+            1. Preprocesarea curbelor de lumină
+            2. Implementarea algoritmilor de detecție  
+            3. Modelarea fizică a tranzitului 
+            4. Analiza statistică și validarea
+            """
+        )
+
+    st.subheader("ETAPE:")
     st.markdown(
         """
-        1. Deschide pagina **„Caută o stea după nume sau ID”** din bara laterală.  
-        2. Introdu un obiect cunoscut, de exemplu `Kepler-10` sau `TIC 261136679`.  
-        3. Alege seturile de date (sectoare / misiuni) și apasă **„Procesează fișierele selectate”**.
+        1. Selectia datelor observaționale 
+        2. Preprocesarea datelor și reducerea zgomotului (Data Cleaning)  
+        3. Detectarea periodicității (Căutarea tranzitului)
+        4.“Împăturirea” curbei de lumină (Phase Folding)
         """
     )
+    st.subheader("Preprocesarea datelor și reducerea zgomotului (Data Cleaning)")
+    st.markdown(
+            """
+            - Eliminarea valorilor neimportante : date eronate sau erori de senzor.
+            - Aplatizarea curbei : eliminarea petelor stelare, rotația stelei, etc
+            
+            """
+        )
     if st.button("Folosește un exemplu (Kepler-10)", type="primary"):
         st.session_state["quick_start_example"] = "Kepler-10"
         st.success("Exemplul a fost salvat. Deschide pagina „Caută o stea după nume sau ID” pentru a-l folosi.")
@@ -160,5 +179,12 @@ with col2:
         """
         Datele provin din arhive publice NASA (TESS, Kepler) accesate prin biblioteca `lightkurve` și servicii
         precum MAST și ExoFOP. Ai nevoie de conexiune la internet pentru a rula interogările.
+        """
+    )
+    st.subheader("Detectarea periodicității (Căutarea tranzitului)")
+    st.markdown(
+        """
+         - Algoritmul BLS (Box Least Squares) – grupeaza datele la un interval de timp si face o medie .
+         - Periodograma - Un grafic care arată puterea semnalului si cauta varful cel mai mare ce indică cei mai probabili candidați .
         """
     )
