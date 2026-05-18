@@ -132,9 +132,11 @@ def process_selected_data(selected_items, bin_minutes, outlier_sigma, period_min
         clean_lc = binned_lc.flatten(window_length=101).remove_outliers(sigma=outlier_sigma)
 
         st.subheader("Pasul 1: Curățarea și Aplatizarea")
+        st.caption("Curba de lumină este curățată de valori extreme (outlieri) și aplatizată prin eliminarea variațiilor de lungă durată (pete stelare, rotație). Acest pas este esențial pentru a evidenția tranzitele.")
         fig1, ax1 = plt.subplots(figsize=(10, 3))
         ax1.plot(clean_lc.time.value, clean_lc.flux.value, color='#1E90FF', lw=0.5, alpha=0.8)
-        ax1.set_ylabel("Flux"); ax1.set_xlabel("Timp (Zile)")
+        ax1.set_ylabel("Flux (luminozitate relativă)"); ax1.set_xlabel("Timp (zile)")
+        st.caption("**Axa X:** Timpul în zile de la începutul observațiilor. **Axa Y:** Fluxul relativ al stelei (1.0 = luminozitatea medie). Scăderile sub 1.0 indică posibile tranzite.")
         st.pyplot(fig1)
 
         # PASUL 2: PERIODOGRAMA
@@ -149,14 +151,17 @@ def process_selected_data(selected_items, bin_minutes, outlier_sigma, period_min
         best_depth = results.depth[np.argmax(results.power)]
 
         st.subheader("Pasul 2: Identificarea Perioadei")
+        st.caption("Algoritmul BLS (Box Least Squares) încearcă mii de perioade posibile și măsoară cât de probabil este un tranzit la fiecare. Vârful cel mai înalt indică perioada candidată.")
         fig2, ax2 = plt.subplots(figsize=(10, 3))
         ax2.plot(results.period, results.power, color='#1E90FF', lw=0.8)
         ax2.axvline(best_p, color="#B307AD", ls='--', alpha=0.7)
-        ax2.set_xlabel("Perioada (zile)"); ax2.set_ylabel("Putere")
+        ax2.set_xlabel("Perioada (zile)"); ax2.set_ylabel("Putere (puterea semnalului)")
+        st.caption("**Axa X:** Perioada orbitală testată (zile). **Axa Y:** Puterea semnalului — cu cât vârful este mai înalt, cu atât perioada este mai probabilă. Linia mov marchează perioada cea mai bună.")
         st.pyplot(fig2)
 
         # PASUL 3: PLIERE ȘI MODEL
         st.subheader("Pasul 3: Pliere și Modelare")
+        st.caption("Toate tranzitele sunt „împăturite” după perioada găsită, suprapunându-se pentru a evidenția forma tranzitului. Linia mov arată modelul BLS ajustat.")
         folded = clean_lc.fold(period=best_p, epoch_time=astropy.time.Time(best_t0, format=clean_lc.time.format))
         
         fig3, ax3 = plt.subplots(figsize=(10, 5))
@@ -167,6 +172,8 @@ def process_selected_data(selected_items, bin_minutes, outlier_sigma, period_min
         ax3.plot(x_m, y_m, color="#B307AD", lw=2.5, label="Model BLS")
         
         ax3.set_xlim(-0.4, 0.4); ax3.legend(); ax3.grid(alpha=0.1)
+        ax3.set_xlabel("Fază (fracție din perioadă)"); ax3.set_ylabel("Flux relativ")
+        st.caption("**Axa X:** Faza orbitală (0 = mijlocul tranzitului, -0.5/0.5 = o jumătate de orbită). **Axa Y:** Fluxul relativ. Punctele albastre sunt măsurătorile individuale, linia mov este modelul BLS.")
         st.pyplot(fig3)
 
         # Metrici
