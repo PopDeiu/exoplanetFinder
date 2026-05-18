@@ -1,6 +1,7 @@
 # pages/7_TESS_Planet_Search.py
 
 import streamlit as st
+import numpy as np
 from utils import search_toi_catalog, set_galaxy_background, set_sidebar_style
 import pandas as pd
 
@@ -45,10 +46,10 @@ with st.expander("🛠️ Filtre Avansate", expanded=True):
             help="**CP/KP:** Planete sigure. **PC:** Posibile planete. **EB/FP:** Obiecte care s-au dovedit a nu fi planete."
         )
 
-        radius_range = st.slider(
-            "Raza Planetei (Raze Terestre)",
-            min_value=0.1, max_value=25.0, value=(0.8, 4.0), step=0.1,
-            help="Pământul are 1.0. Jupiter are aprox. 11.0."
+        mass_range = st.slider(
+            "Masa Planetei (Mase Terestre)",
+            min_value=0.1, max_value=30.0, value=(1.0, 10.0), step=0.1,
+            help="Pământul are 1.0 M⊕. Jupiter are ~318 M⊕."
         )
 
     with col2:
@@ -77,7 +78,7 @@ if st.button("🚀 Caută în catalogul TESS", type="primary", use_container_wid
         # Apelăm funcția robustă din utils/data_fetchers.py
         results_df = search_toi_catalog(
             dispositions=dispositions,
-            radius_range=radius_range,
+            mass_range=mass_range,
             period_range=period_range,
             tic_id=search_tic
         )
@@ -93,19 +94,50 @@ if st.session_state.toi_search_results is not None:
     else:
         st.success(f"Am găsit **{len(df)} obiecte (TOIs)** conform filtrelor selectate.")
 
-        # Configurare coloane pentru un aspect profi
+        # Adăugăm coloane calculate
+        df = df.copy()
+        if 'Stellar Distance (pc)' in df.columns:
+            df['Distanta (ani-lumina)'] = pd.to_numeric(df['Stellar Distance (pc)'], errors='coerce') * 3.26156
+
+        # Calcul semiaxa mare (AU) din perioadă și masa stelei (Kepler 3: a³ = M * P²)
+        if 'Period (days)' in df.columns and 'Stellar Mass (M_Sun)' in df.columns:
+            P = pd.to_numeric(df['Period (days)'], errors='coerce')
+            M = pd.to_numeric(df['Stellar Mass (M_Sun)'], errors='coerce')
+            df['Semiaxa (AU)'] = (M * (P / 365.25) ** 2) ** (1/3)
+
+        # Calcul zona locuibilă a stelei și verificare
+        if 'Stellar Radius (R_Sun)' in df.columns and 'Stellar Eff Temp (K)' in df.columns:
+            R = pd.to_numeric(df['Stellar Radius (R_Sun)'], errors='coerce')
+            T = pd.to_numeric(df['Stellar Eff Temp (K)'], errors='coerce')
+            L = (R ** 2) * ((T / 5778) ** 4)
+            df['HZ_int (AU)'] = np.sqrt(L / 1.1)
+            df['HZ_ext (AU)'] = np.sqrt(L / 0.53)
+
+            if 'Semiaxa (AU)' in df.columns:
+                a = df['Semiaxa (AU)']
+                in_hz = (a >= df['HZ_int (AU)']) & (a <= df['HZ_ext (AU)'])
+                df['In Zona Locuibila'] = in_hz.map({True: '🌍 Da', False: '❌ Nu'})
+
+        # Configurare coloane relevante
+        col_config = {
+            "TOI": st.column_config.NumberColumn("TOI", format="%d"),
+            "TIC ID": st.column_config.TextColumn("ID TIC"),
+            "TFOPWG Disposition": "Stare",
+            "Period (days)": st.column_config.NumberColumn("Perioadă (zile)", format="%.3f"),
+            "Semiaxa (AU)": st.column_config.NumberColumn("Distanță de stea (AU)", format="%.3f"),
+            "Predicted Mass (M_Earth)": st.column_config.NumberColumn("Masă (M⊕)", format="%.2f"),
+            "Planet Equil Temp (K)": st.column_config.NumberColumn("Temp. echilibru (K)", format="%d"),
+            "Planet Insolation (Earth Flux)": st.column_config.NumberColumn("Iradiație (×Pământ)", format="%.2f"),
+            "HZ_int (AU)": st.column_config.NumberColumn("Zonă locuibilă (int)", format="%.2f"),
+            "HZ_ext (AU)": st.column_config.NumberColumn("Zonă locuibilă (ext)", format="%.2f"),
+            "In Zona Locuibila": "În Zona Locuibilă?",
+            "Distanta (ani-lumina)": st.column_config.NumberColumn("Distanță (ani-lumină)", format="%.1f"),
+        }
+        coloane_de_afisat = [c for c in col_config if c in df.columns]
+
         st.dataframe(
-            df,
-            column_config={
-                "TIC ID": st.column_config.TextColumn("ID TIC"),
-                "TOI": st.column_config.NumberColumn("Obiect de Interes TESS", format="%d"),
-                "TFOPWG Disposition": "Stare",
-                "Planet Radius (R_earth)": st.column_config.NumberColumn("Rază Planetă (R⊕)", format="%.2f"),
-                "Orbital Period (days)": st.column_config.NumberColumn("Perioadă Orbitală (zile)", format="%.3f"),
-                "Planet Temp (K)": st.column_config.NumberColumn("Temperatura Planetei (K)", format="%d"),
-                "Stellar Radius (R_sun)": st.column_config.NumberColumn("Rază Stea (R⊙)", format="%.2f"),
-                "Stellar Teff (K)": st.column_config.NumberColumn("Temperatura Efectivă Stea (K)", format="%d"),
-            },
+            df[coloane_de_afisat],
+            column_config=col_config,
             use_container_width=True,
             hide_index=True
         )

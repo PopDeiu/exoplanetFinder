@@ -134,6 +134,8 @@ with col1:
         """
     )
 
+    st.image("assets/transit_method.gif", caption="Animația metodei tranzitului – planeta întunecă parțial steaua, generând o scădere în curba de lumină.", use_container_width=True)
+
     st.subheader("METODA TRANZITULUI:")
     st.markdown(
             """
@@ -174,6 +176,7 @@ with col1:
          - Suprapunerea tuturor tranzitelor detectate
         """
     )
+    st.image("assets/phase_folding.gif", caption="Phase folding – suprapunerea datelor de tranzit pentru a evidenția periodicitatea.", use_container_width=True)
     
     if st.button("Folosește un exemplu (Kepler-10)", type="primary"):
         st.session_state["quick_start_example"] = "Kepler-10"

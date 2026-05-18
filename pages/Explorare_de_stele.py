@@ -315,6 +315,10 @@ if data:
             toi_pc_count = data.get("toi_pc_count", 0)
             toi_cp_count = data.get("toi_cp_count", 0)
 
+            # planete în zona locuibilă
+            hz_planet_count = data.get("hz_planet_count", 0)
+            hz_planet_names = data.get("hz_planet_names", [])
+
             # câmpuri noi (de populat în fetch_star_data)
             luminosity = data.get("luminosity", "N/A")              # în L☉
             metallicity = data.get("metallicity", "N/A")            # [Fe/H]
@@ -377,6 +381,7 @@ if data:
 | **Distanță** | `{distance_ly} ani-lumină` | Distanță aproximativă față de Pământ |
 | **Sectoare TESS observate** | `{tess_sectors_str}` | Sectoare în care TESS a observat steaua |
 | **Zonă locuibilă estimată** | `{hz_zone_str}` | Interval aproximativ al zonei locuibile (AU) |
+| **Planete în zona locuibilă** | `{hz_planet_count}` | Planete cu semiaxa mare în intervalul HZ |
 | **Tip spectral estimat** | `{spectral_type}` | Tip spectral derivat din datele fotometrice |
 | **Stare evolutivă** | `{evolution_class}` | Pitică / subgigantă / gigantă (estimativ) |
 | **Perioadă de rotație** | `{rotation_str}` | Perioada de rotație a stelei, dacă este cunoscută |
@@ -463,6 +468,13 @@ if data:
                 bullets.append(
                     f"- Zona locuibilă estimată se află între **{hz_inner_num:.2f} și {hz_outer_num:.2f} AU**; "
                     "planete în acest interval ar putea avea condiții pentru apă lichidă la suprafață."
+                )
+
+            # Planete în zona locuibilă
+            if hz_planet_count > 0:
+                hz_names_str = ", ".join(hz_planet_names)
+                bullets.append(
+                    f"- **{hz_planet_count} planetă(e) se află în zona locuibilă**: {hz_names_str}."
                 )
 
             # Sistem planetar

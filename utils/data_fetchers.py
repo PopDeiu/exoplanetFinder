@@ -22,7 +22,7 @@ def get_toi_catalog():
         st.error(f"Eroare la descărcarea catalogului ExoFOP: {e}")
         return pd.DataFrame()
 
-def search_toi_catalog(dispositions=None, radius_range=None, period_range=None, tic_id=None):
+def search_toi_catalog(dispositions=None, mass_range=None, radius_range=None, period_range=None, tic_id=None):
     """Filtrează catalogul TOI cu detecție automată a coloanelor."""
     df = get_toi_catalog()
     if df.empty:
@@ -32,16 +32,16 @@ def search_toi_catalog(dispositions=None, radius_range=None, period_range=None, 
 
     # Identificăm numele coloanelor (NASA le modifică periodic)
     disp_col = next((c for c in ['TFOPWG Disposition', 'Disposition'] if c in filtered_df.columns), None)
-    rad_col = next((c for c in ['Planet Radius (R_earth)', 'Radius (R_earth)'] if c in filtered_df.columns), None)
+    mass_col = next((c for c in ['Predicted Mass (M_Earth)', 'Planet Mass (M_earth)', 'Mass (M_earth)'] if c in filtered_df.columns), None)
     per_col = next((c for c in ['Orbital Period (days)', 'Period (days)'] if c in filtered_df.columns), None)
 
     if dispositions and disp_col:
         filtered_df = filtered_df[filtered_df[disp_col].isin(dispositions)]
     
-    if radius_range and rad_col:
-        filtered_df[rad_col] = pd.to_numeric(filtered_df[rad_col], errors='coerce')
-        filtered_df = filtered_df.dropna(subset=[rad_col])
-        filtered_df = filtered_df[(filtered_df[rad_col] >= radius_range[0]) & (filtered_df[rad_col] <= radius_range[1])]
+    if mass_range and mass_col:
+        filtered_df[mass_col] = pd.to_numeric(filtered_df[mass_col], errors='coerce')
+        filtered_df = filtered_df.dropna(subset=[mass_col])
+        filtered_df = filtered_df[(filtered_df[mass_col] >= mass_range[0]) & (filtered_df[mass_col] <= mass_range[1])]
     
     if period_range and per_col:
         filtered_df[per_col] = pd.to_numeric(filtered_df[per_col], errors='coerce')
@@ -130,22 +130,26 @@ def fetch_star_data(star_name):
 
         # Verificăm dacă SIMBAD a găsit ceva
         if result_table is not None and len(result_table) > 0:
-            # Extragere sigură IDS
-            if 'IDS' in result_table.colnames:
-                raw_ids = result_table['IDS'][0]
+            # mapare case-insensitive a coloanelor SIMBAD
+            colmap = {c.lower(): c for c in result_table.colnames}
+            ids_col = colmap.get('ids')
+            sp_col = colmap.get('sp_type')
+
+            if ids_col:
+                raw_ids = result_table[ids_col][0]
                 # Decodare din bytes în string dacă e necesar
                 ids_str = raw_ids.decode('utf-8') if isinstance(raw_ids, bytes) else str(raw_ids)
                 ids_list = ids_str.split('|')
                 
                 for identifier in ids_list:
                     if 'TIC' in identifier:
-                        tic_id = identifier.replace("TIC", "").strip()
+                        tic_id = "".join(filter(str.isdigit, identifier))
                     # Căutăm nume recunoscute de NASA
                     if any(x in identifier for x in ["WASP-", "Kepler-", "K2-", "HD ", "HIP ", "GJ ", "TOI"]):
                         search_name_for_nasa = identifier.strip()
 
-            if 'SP_TYPE' in result_table.colnames:
-                sp = result_table['SP_TYPE'][0]
+            if sp_col:
+                sp = result_table[sp_col][0]
                 spectral_type = sp.decode('utf-8') if isinstance(sp, bytes) else str(sp)
 
         # 2. Date din Catalogul TIC (MAST)
@@ -218,8 +222,13 @@ def fetch_star_data(star_name):
         spectral_type = "N/A"
 
         if result_table is not None and len(result_table) > 0:
-            if 'IDS' in result_table.colnames:
-                raw_ids = result_table['IDS'][0]
+            # mapare case-insensitive a coloanelor SIMBAD
+            colmap = {c.lower(): c for c in result_table.colnames}
+            ids_col = colmap.get('ids')
+            sp_col = colmap.get('sp_type')
+
+            if ids_col:
+                raw_ids = result_table[ids_col][0]
                 ids_str = raw_ids.decode('utf-8') if isinstance(raw_ids, bytes) else str(raw_ids)
                 ids_list = ids_str.split('|')
                 
@@ -230,8 +239,8 @@ def fetch_star_data(star_name):
                     if any(x in identifier for x in ["WASP-", "Kepler-", "K2-", "HD ", "HIP ", "GJ ", "TOI"]):
                         search_name_for_nasa = identifier.strip()
 
-            if 'SP_TYPE' in result_table.colnames:
-                sp = result_table['SP_TYPE'][0]
+            if sp_col:
+                sp = result_table[sp_col][0]
                 spectral_type = sp.decode('utf-8') if isinstance(sp, bytes) else str(sp)
 
         # 2. Date din Catalogul TIC (MAST)
@@ -249,11 +258,14 @@ def fetch_star_data(star_name):
                 mass = row.get('mass')
                 dist_pc = row.get('dist') # Distanța în parseci din TIC
                 
+                def is_valid(val):
+                    return val is not None and not pd.isna(val)
+                
                 # --- CALCULE ASTROFIZICE ---
                 lum_val = None
                 hz_i, hz_o = None, None
                 
-                if rad and teff:
+                if is_valid(rad) and is_valid(teff):
                     # L/Lsun = (R/Rsun)^2 * (T/Tsun)^4
                     lum_val = (float(rad)**2) * ((float(teff) / 5778)**4)
                     # Estimare Zona Locuibilă (HZ)
@@ -262,17 +274,17 @@ def fetch_star_data(star_name):
 
                 facts.update({
                     'tic_id': tic_id,
-                    'ra': round(float(row['ra']), 5) if row.get('ra') else "N/A",
-                    'dec': round(float(row['dec']), 5) if row.get('dec') else "N/A",
-                    'Tmag': round(float(row['Tmag']), 3) if row.get('Tmag') else "N/A",
-                    'Teff': int(teff) if teff else "N/A",
-                    'radius': round(float(rad), 3) if rad else "N/A",
-                    'mass': round(float(mass), 3) if mass else "N/A",
+                    'ra': round(float(row['ra']), 5) if is_valid(row.get('ra')) else "N/A",
+                    'dec': round(float(row['dec']), 5) if is_valid(row.get('dec')) else "N/A",
+                    'Tmag': round(float(row['Tmag']), 3) if is_valid(row.get('Tmag')) else "N/A",
+                    'Teff': int(teff) if is_valid(teff) else "N/A",
+                    'radius': round(float(rad), 3) if is_valid(rad) else "N/A",
+                    'mass': round(float(mass), 3) if is_valid(mass) else "N/A",
                     'luminosity': f"{lum_val:.2f}" if lum_val else "N/A",
                     'hz_inner_au': hz_i,
                     'hz_outer_au': hz_o,
                     'spectral_type': spectral_type,
-                    'distance_ly': round(float(dist_pc) * 3.26156, 2) if dist_pc else "N/A"
+                    'distance_ly': round(float(dist_pc) * 3.26156, 2) if is_valid(dist_pc) else "N/A"
                 })
 
         # 3. Interogare NASA Arhivă (Folosim numele găsit sau cel introdus)
@@ -284,6 +296,77 @@ def fetch_star_data(star_name):
         except:
             facts['confirmed_planet_count'] = 0
             facts['planet_df'] = None
+
+        # 3b. Fallback: dacă TIC nu a returnat date complete, încercăm din arhiva NASA
+        needs_fallback = (
+            facts.get('tic_id') is None
+            or facts.get('hz_inner_au') is None
+            or facts.get('Teff') in (None, "N/A")
+            or facts.get('distance_ly') in (None, "N/A")
+        )
+        if needs_fallback:
+            planet_df = facts.get('planet_df')
+            if planet_df is not None and not planet_df.empty:
+                try:
+                    row0 = planet_df.iloc[0]
+                    fallback_teff = None
+                    fallback_rad = None
+                    fallback_mass = None
+                    fallback_dist_pc = None
+                    fallback_lum_val = None
+
+                    st_teff = row0.get('st_teff')
+                    if st_teff is not None and not pd.isna(st_teff):
+                        fallback_teff = float(st_teff)
+                    st_rad = row0.get('st_rad')
+                    if st_rad is not None and not pd.isna(st_rad):
+                        fallback_rad = float(st_rad)
+                    st_mass = row0.get('st_mass')
+                    if st_mass is not None and not pd.isna(st_mass):
+                        fallback_mass = float(st_mass)
+                    sy_dist = row0.get('sy_dist')
+                    if sy_dist is not None and not pd.isna(sy_dist):
+                        fallback_dist_pc = float(sy_dist)
+                    st_lum = row0.get('st_lum')
+                    if st_lum is not None and not pd.isna(st_lum):
+                        try:
+                            fallback_lum_val = 10 ** float(st_lum)
+                        except Exception:
+                            fallback_lum_val = float(st_lum)
+
+                    if fallback_teff and fallback_rad:
+                        lum_val_fb = fallback_lum_val or ((fallback_rad ** 2) * ((fallback_teff / 5778) ** 4))
+                        hz_i_fb = round(np.sqrt(lum_val_fb / 1.1), 3)
+                        hz_o_fb = round(np.sqrt(lum_val_fb / 0.53), 3)
+
+                        facts.update({
+                            'tic_id': facts.get('tic_id') or 'N/A',
+                            'Teff': int(fallback_teff),
+                            'radius': round(fallback_rad, 3),
+                            'mass': round(fallback_mass, 3) if fallback_mass else "N/A",
+                            'luminosity': f"{lum_val_fb:.4f}",
+                            'hz_inner_au': hz_i_fb,
+                            'hz_outer_au': hz_o_fb,
+                            'distance_ly': round(fallback_dist_pc * 3.26156, 2) if fallback_dist_pc else "N/A",
+                        })
+                except Exception:
+                    pass
+
+        # 4. Determinare planete în zona locuibilă
+        hz_planet_count = 0
+        hz_planet_names = []
+        planet_df = facts.get('planet_df')
+        hz_i = facts.get('hz_inner_au')
+        hz_o = facts.get('hz_outer_au')
+        if planet_df is not None and hz_i is not None and hz_o is not None and not planet_df.empty:
+            if 'pl_orbsmax' in planet_df.columns:
+                for _, p in planet_df.iterrows():
+                    sma = p.get('pl_orbsmax')
+                    if sma is not None and not pd.isna(sma) and hz_i <= float(sma) <= hz_o:
+                        hz_planet_count += 1
+                        hz_planet_names.append(p.get('pl_name', f'Planeta {hz_planet_count}'))
+        facts['hz_planet_count'] = hz_planet_count
+        facts['hz_planet_names'] = hz_planet_names
 
         facts['name'] = search_name_for_nasa
         
