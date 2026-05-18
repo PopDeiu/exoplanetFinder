@@ -161,6 +161,20 @@ with col1:
             
             """
         )
+    st.subheader("Detectarea periodicității (Căutarea tranzitului)")
+    st.markdown(
+        """
+         - Algoritmul BLS (Box Least Squares) – grupeaza datele la un interval de timp si face o medie .
+         - Periodograma - Un grafic care arată puterea semnalului si cauta varful cel mai mare ce indică cei mai probabili candidați .
+        """
+    )
+    st.subheader("“Împăturirea” curbei de lumină (Phase Folding))")
+    st.markdown(
+        """
+         - Suprapunerea tuturor tranzitelor detectate
+        """
+    )
+    
     if st.button("Folosește un exemplu (Kepler-10)", type="primary"):
         st.session_state["quick_start_example"] = "Kepler-10"
         st.success("Exemplul a fost salvat. Deschide pagina „Caută o stea după nume sau ID” pentru a-l folosi.")
@@ -181,10 +195,4 @@ with col2:
         precum MAST și ExoFOP. Ai nevoie de conexiune la internet pentru a rula interogările.
         """
     )
-    st.subheader("Detectarea periodicității (Căutarea tranzitului)")
-    st.markdown(
-        """
-         - Algoritmul BLS (Box Least Squares) – grupeaza datele la un interval de timp si face o medie .
-         - Periodograma - Un grafic care arată puterea semnalului si cauta varful cel mai mare ce indică cei mai probabili candidați .
-        """
-    )
+    
