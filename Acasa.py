@@ -105,8 +105,7 @@ with st.sidebar:
     )
 
 # --- Main Page Content (CONȚINUTUL TĂU ORIGINAL) ---
-st.title("Exoplanet Hunter")
-st.subheader("Echipa Exohunt")
+st.title("Exoplanet Hunter (ExoHunt)")
 st.caption("Aplicație interactivă pentru explorarea datelor TESS și Kepler și căutarea de exoplanete prin metoda tranzitului.")
 
 col1, col2 = st.columns([2, 1])
