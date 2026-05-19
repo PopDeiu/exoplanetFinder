@@ -105,7 +105,7 @@ with st.sidebar:
     )
 
 # --- Main Page Content (CONȚINUTUL TĂU ORIGINAL) ---
-st.title("Exoplanethunter")
+st.title("Exoplanet Hunter")
 st.subheader("Echipa Exohunt")
 st.caption("Aplicație interactivă pentru explorarea datelor TESS și Kepler și căutarea de exoplanete prin metoda tranzitului.")
 
@@ -206,4 +206,4 @@ with col2:
                 - Stocare securizată a datelor și cookie-uri criptate
             """
         )
-    
+    st.image("assets/ExoHunt_flyer2.png", use_container_width=True)
