@@ -207,9 +207,9 @@ with col2:
             - Unity / C#
             - Meta Quest 3
             - FastAPI (Python)
-            -Docker pentru containerizare
-            -Server Linux pentru hosting
-            -Baze de date SQL (MySQL)
+            - Docker pentru containerizare
+            - Server Linux pentru hosting
+            - Baze de date SQL (MySQL)
                 - Sisteme de autentificare și gestionare a utilizatorilor
                 - Stocare securizată a datelor și cookie-uri criptate
             """
