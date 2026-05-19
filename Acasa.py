@@ -105,7 +105,8 @@ with st.sidebar:
     )
 
 # --- Main Page Content (CONȚINUTUL TĂU ORIGINAL) ---
-st.title("Vânătorul de Exoplanete")
+st.title("Exoplanethunter")
+st.subheader("Echipa Exohunt")
 st.caption("Aplicație interactivă pentru explorarea datelor TESS și Kepler și căutarea de exoplanete prin metoda tranzitului.")
 
 col1, col2 = st.columns([2, 1])
@@ -136,7 +137,7 @@ with col1:
 
     st.image("assets/transit_method.gif", caption="Animația metodei tranzitului – planeta întunecă parțial steaua, generând o scădere în curba de lumină.", use_container_width=True)
 
-    st.subheader("METODA TRANZITULUI:")
+    st.subheader("METODA TRANZITULUI")
     st.markdown(
             """
             1. Preprocesarea curbelor de lumină
@@ -146,13 +147,13 @@ with col1:
             """
         )
 
-    st.subheader("ETAPE:")
+    st.subheader("ETAPE")
     st.markdown(
         """
         1. Selectia datelor observaționale 
         2. Preprocesarea datelor și reducerea zgomotului (Data Cleaning)  
         3. Detectarea periodicității (Căutarea tranzitului)
-        4.“Împăturirea” curbei de lumină (Phase Folding)
+        4. “Împăturirea” curbei de lumină (Phase Folding)
         """
     )
     st.subheader("Preprocesarea datelor și reducerea zgomotului (Data Cleaning)")
@@ -183,14 +184,6 @@ with col1:
         st.success("Exemplul a fost salvat. Deschide pagina „Caută o stea după nume sau ID” pentru a-l folosi.")
 
 with col2:
-    st.subheader("Sfaturi utile")
-    st.info(
-        """
-        - Începe cu stele bine studiate (Kepler, TOI-uri populare) pentru a vedea cum arată semnalele reale.  
-        - Dacă nu apare niciun rezultat, verifică pagina **Setări** – poate intervalul de perioade este prea îngust.  
-        - Ține cont că aceasta este o unealtă *educațională* și *exploratorie*, nu un pipeline oficial de confirmare a planetelor.
-        """
-    )
     st.subheader("Despre date")
     st.markdown(
         """
@@ -198,7 +191,7 @@ with col2:
         precum MAST și ExoFOP. Ai nevoie de conexiune la internet pentru a rula interogările.
         """
     )
-    st.subheader("Tehnologii utilizate :")
+    st.subheader("Tehnologii utilizate")
     st.markdown(
             """
             - Biblioteca Python Streamlit;
@@ -207,9 +200,9 @@ with col2:
             - Unity / C#
             - Meta Quest 3
             - FastAPI (Python)
-            -Docker pentru containerizare
-            -Server Linux pentru hosting
-            -Baze de date SQL (MySQL)
+            - Docker pentru containerizare
+            - Server Linux pentru hosting
+            - Baze de date SQL (MySQL)
                 - Sisteme de autentificare și gestionare a utilizatorilor
                 - Stocare securizată a datelor și cookie-uri criptate
             """
