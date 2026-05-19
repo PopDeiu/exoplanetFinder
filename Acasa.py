@@ -178,7 +178,7 @@ with col1:
          - Suprapunerea tuturor tranzitelor detectate
         """
     )
-    st.image("assets/phase_folding.gif", caption="Phase folding – suprapunerea datelor de tranzit pentru a evidenția periodicitatea.", use_container_width=True)
+    st.image("assets/phase_folding.gif", use_container_width=True)
     
     
 
