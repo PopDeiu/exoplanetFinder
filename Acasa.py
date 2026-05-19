@@ -188,7 +188,7 @@ with col2:
     st.markdown(
         """
         Datele provin din arhive publice NASA (TESS, Kepler) accesate prin biblioteca `lightkurve` și servicii
-        precum MAST și ExoFOP. Ai nevoie de conexiune la internet pentru a rula interogările.
+        precum MAST și ExoFOP. Ai nevoie de conexiune la internet pentru a rula interogările
         """
     )
     st.subheader("Tehnologii utilizate")
