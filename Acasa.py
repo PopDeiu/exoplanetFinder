@@ -206,4 +206,4 @@ with col2:
                 - Stocare securizată a datelor și cookie-uri criptate
             """
         )
-    st.image("assets/ExoHunt_flyer2.png", use_container_width=True)
+    
