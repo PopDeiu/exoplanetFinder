@@ -179,11 +179,10 @@ with col1:
     )
     st.image("assets/phase_folding.gif", caption="Phase folding – suprapunerea datelor de tranzit pentru a evidenția periodicitatea.", use_container_width=True)
     
-    if st.button("Folosește un exemplu (Kepler-10)", type="primary"):
-        st.session_state["quick_start_example"] = "Kepler-10"
-        st.success("Exemplul a fost salvat. Deschide pagina „Caută o stea după nume sau ID” pentru a-l folosi.")
+    
 
 with col2:
+    st.image("assets/Banner_ExoHunt.png", use_container_width=True)
     st.subheader("Despre date")
     st.markdown(
         """
