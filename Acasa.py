@@ -164,6 +164,7 @@ with col1:
             
             """
         )
+    st.image("assets/Etapa 3.jpeg", use_container_width=True)
     st.subheader("Detectarea periodicității (Căutarea tranzitului)")
     st.markdown(
         """
@@ -171,6 +172,7 @@ with col1:
          - Periodograma - Un grafic care arată puterea semnalului si cauta varful cel mai mare ce indică cei mai probabili candidați .
         """
     )
+    st.image("assets/periodograma neagra.jpg.jpeg", use_container_width=True)
     st.subheader("“Împăturirea” curbei de lumină (Phase Folding)")
     st.markdown(
         """
