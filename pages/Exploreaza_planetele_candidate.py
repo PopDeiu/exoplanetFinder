@@ -13,6 +13,8 @@ st.set_page_config(
 set_sidebar_style()
 set_galaxy_background("cosmic")
 
+st.logo("assets/ExoLogo_noBg.png", size="large")
+
 st.header("Descoperă candidați interesanți la planete")
 
 st.caption("Pasul 2 din 4 · Explorează sisteme în care au fost deja identificate planete sau candidați.")

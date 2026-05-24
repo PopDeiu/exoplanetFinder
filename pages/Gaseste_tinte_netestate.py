@@ -16,7 +16,7 @@ st.set_page_config(
 set_sidebar_style()
 set_galaxy_background("stellar")
 
-
+st.logo("assets/ExoLogo_noBg.png", size="large")
 
 st.header("Găsește ținte posibil netestate")
 st.caption("Descoperă stele interesante care nu au încă planete candidate oficiale asociate.")
@@ -36,7 +36,7 @@ if 'items_per_page' not in st.session_state:
 if st.button("Găsește stele netestate", type="primary", key="fetch_untested", use_container_width=True):
     with st.spinner("Se corelează cataloagele TESS și se filtrează TOI-urile cunoscute..."):
         # Această funcție din utils/data_fetchers.py acum exclude automat TOI-urile
-        st.session_state.untested_results = fetch_untested_targets(num_to_sample=100)
+        st.session_state.untested_results = fetch_untested_targets(num_to_sample=200)
         st.session_state.current_page = 0  # Reset la prima pagină
 
 if st.session_state.untested_results is not None:

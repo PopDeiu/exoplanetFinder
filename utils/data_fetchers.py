@@ -377,13 +377,89 @@ def fetch_star_data(star_name):
 
 @st.cache_data(ttl="7d")
 def get_star_parameters(target_id):
-    """Returnează doar raza stelei din TIC."""
+    """Returnează parametrii stelari (rad, mass, Teff) din TIC cu fallback în Gaia DR3, NASA Exoplanet Archive și SIMBAD."""
+    rad = teff = mass = None
+    gaia_source_id = None
+
+    # 1. Încercare TIC (TESS Input Catalog)
     try:
         tid = target_id.upper().replace("TIC", "").strip()
         data = Catalogs.query_criteria(catalog="TIC", ID=int(tid))
-        return data['rad'][0] if len(data) > 0 else None
+        if len(data) > 0:
+            row = data[0]
+            def v(k):
+                val = row.get(k)
+                return None if val is None or (hasattr(val, 'mask') and val.mask) else float(val)
+            rad = v('rad')
+            mass = v('mass')
+            teff = v('Teff')
+            # Salvează GAIA ID din TIC pentru fallback
+            g = row.get('GAIA')
+            if g is not None and not (hasattr(g, 'mask') and g.mask):
+                gaia_source_id = str(int(g))
     except:
-        return None
+        pass
+
+    # 2. Dacă masa lipsește, fallback în Gaia DR3 (FLAME) via TAP
+    if mass is None and gaia_source_id:
+        try:
+            import urllib.request, urllib.parse, json
+            query = f"SELECT mass_flame_spec,teff_gspphot_marcs,radius_gspphot_marcs,logg_gspphot_marcs FROM gaiadr3.astrophysical_parameters_supp WHERE source_id={gaia_source_id}"
+            params = urllib.parse.urlencode({"REQUEST": "doQuery", "LANG": "ADQL", "FORMAT": "json", "QUERY": query})
+            url = f"https://gea.esac.esa.int/tap-server/tap/sync?{params}"
+            with urllib.request.urlopen(url, timeout=10) as resp:
+                j = json.loads(resp.read())
+                if 'data' in j and j['data'] and len(j['data']) > 0:
+                    row = j['data'][0]
+                    if mass is None and row[0] is not None:
+                        mass = float(row[0])
+                    if teff is None and row[1] is not None:
+                        teff = float(row[1])
+                    if rad is None and row[2] is not None:
+                        rad = float(row[2])
+        except:
+            pass
+
+    # 3. Dacă masa lipsește, fallback în NASA Exoplanet Archive (pscomppars)
+    if mass is None:
+        try:
+            search_name = target_id.upper().replace("TIC", "").strip()
+            planets = NasaExoplanetArchive.query_object(search_name, table="pscomppars")
+            df = planets.to_pandas()
+            if not df.empty:
+                row0 = df.iloc[0]
+                st_mass = row0.get('st_mass')
+                if st_mass is not None and not pd.isna(st_mass):
+                    mass = float(st_mass)
+                if rad is None:
+                    st_rad = row0.get('st_rad')
+                    if st_rad is not None and not pd.isna(st_rad):
+                        rad = float(st_rad)
+                if teff is None:
+                    st_teff = row0.get('st_teff')
+                    if st_teff is not None and not pd.isna(st_teff):
+                        teff = float(st_teff)
+        except:
+            pass
+
+    # 4. Dacă masa încă lipsește, fallback în SIMBAD (tip spectral -> masă aproximativă)
+    if mass is None:
+        try:
+            simbad = Simbad()
+            simbad.add_votable_fields('sptype')
+            result = simbad.query_object(target_id)
+            if result is not None and len(result) > 0:
+                sp_type = str(result[0]['SP_TYPE']).strip()
+                if sp_type and sp_type != '--':
+                    prima_litera = sp_type[0]
+                    mase_aprox = {'O': 20, 'B': 5, 'A': 2.5, 'F': 1.4, 'G': 1.0, 'K': 0.7, 'M': 0.3}
+                    mass = mase_aprox.get(prima_litera)
+        except:
+            pass
+
+    if any(v is not None for v in [rad, mass, teff]):
+        return {'rad': rad, 'mass': mass, 'Teff': teff}
+    return None
 
 # --- FUNCȚII EXPLORARE ȘI VÂNĂTOARE DE PLANETE ---
 
@@ -407,7 +483,7 @@ def fetch_catalog_targets(mission_name, disposition_type, num_targets=25):
         return pd.DataFrame()
 
 @st.cache_data(ttl="1h")
-def fetch_untested_targets(num_to_sample=100):
+def fetch_untested_targets(num_to_sample=200):
     """Găsește stele luminoase care nu sunt în catalogul TOI. Optimizat pentru viteză."""
     try:
         toi_df = get_toi_catalog()

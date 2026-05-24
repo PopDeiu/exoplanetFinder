@@ -15,6 +15,8 @@ st.set_page_config(
 set_sidebar_style()
 set_galaxy_background("stellar")
 
+st.logo("assets/ExoLogo_noBg.png", size="large")
+
 st.header("🔍 Căutare de planete TESS")
 st.caption("Interfață pentru filtrarea și explorarea catalogului oficial TOI (TESS Objects of Interest) al misiunii NASA.")
 

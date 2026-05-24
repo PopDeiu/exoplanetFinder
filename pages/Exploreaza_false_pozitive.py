@@ -13,6 +13,8 @@ st.set_page_config(
 set_sidebar_style()
 set_galaxy_background("void")
 
+st.logo("assets/ExoLogo_noBg.png", size="large")
+
 st.header("Semnale care NU sunt planete (false pozitive)")
 
 st.caption("Pasul 3 din 4 · Învață cum arată semnalele care pot imita tranzitele de exoplanete.")

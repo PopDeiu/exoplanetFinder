@@ -46,6 +46,21 @@ def load_settings_into_session():
 load_settings_into_session()
 
 st.set_page_config(page_title="Planetariu VR")
+set_sidebar_style()
+set_galaxy_background("stellar")
+st.logo("assets/ExoLogo_noBg.png", size="large")
+
+# ========== DOWNLOAD VR APP ==========
+with st.sidebar:
+    st.markdown("### 📥 Descarcă VR")
+    with open("assets/planetariuVR.apk", "rb") as f:
+        st.download_button(
+            label="Planetariu VR APK",
+            data=f,
+            file_name="planetariuVR.apk",
+            mime="application/vnd.android.package-archive",
+            use_container_width=True
+        )
 
 # --- ORASE PREDEFINITE (Fără "Personalizat") ---
 ORASE = {

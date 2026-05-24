@@ -19,6 +19,8 @@ PIXELS_DEFAULT = 600  # dimensiune fixă pentru imaginea SkyView
 set_sidebar_style()
 set_galaxy_background("cosmic")
 
+st.logo("assets/ExoLogo_noBg.png", size="large")
+
 st.header("Explorator de stele")
 st.caption(
     "Pasul 4 din 4 · Explorează în detaliu proprietățile unei stele și ale planetelor ei cunoscute."

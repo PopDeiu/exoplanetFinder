@@ -21,6 +21,8 @@ if 'logged_in' not in st.session_state:
 set_sidebar_style()
 set_galaxy_background("nebula")
 
+st.logo("assets/ExoLogo_noBg.png", size="large")
+
 # --- Inițializare session state din setări persistente ---
 init_session_state()
 
@@ -97,6 +99,45 @@ if st.session_state.search_result is not None:
                 period_max=max_p
             )
 
+# Afișează parametrii orbitali și zona locuibilă înainte de descărcare
+if hasattr(st.session_state, 'pdf_export_data') and st.session_state.pdf_export_data:
+    st.divider()
+    st.subheader("Parametri Orbitali și Zona Locuibilă")
+
+    pd_data = st.session_state.pdf_export_data
+    sma = pd_data.get('semi_major_axis')
+    hz_i = pd_data.get('hz_inner')
+    hz_o = pd_data.get('hz_outer')
+    s_mass = pd_data.get('star_mass')
+    s_teff = pd_data.get('star_teff')
+    s_lum = pd_data.get('star_luminosity')
+
+    col_sma, col_hzi, col_hzo = st.columns(3)
+    col_sma.metric("Semi-axa mare (a)", f"{sma} UA" if sma else "N/A", help="Distanța medie de la planetă la stea")
+    col_hzi.metric("Zonă locuibilă interioară", f"{hz_i} UA" if hz_i else "N/A")
+    col_hzo.metric("Zonă locuibilă exterioară", f"{hz_o} UA" if hz_o else "N/A")
+
+    if s_mass or s_teff or s_lum:
+        with st.expander("Vezi parametrii stelari"):
+            c1, c2, c3 = st.columns(3)
+            if s_mass: c1.metric("Masă stelară", f"{s_mass} M☉")
+            if s_teff: c2.metric("Temperatură efectivă", f"{s_teff} K")
+            if s_lum: c3.metric("Luminozitate", f"{s_lum} L☉")
+
+    with st.expander("Cum se calculează?"):
+        st.markdown("**Distanța planetă–stea (semi-axa mare)** — *Legea a III‑a a lui Kepler*")
+        st.latex(r"a = \sqrt[3]{\frac{G \cdot M_* \cdot P^2}{4\pi^2}}")
+        st.markdown("În unități astronomice (UA) și solare:")
+        st.latex(r"a\;(\text{UA}) = \sqrt[3]{\frac{M_*}{M_\odot} \cdot \left(\frac{P}{365.25}\right)^2}")
+        st.markdown(r"unde \(P\) este perioada orbitală în zile, iar \(M_*\) masa stelei.")
+
+        st.divider()
+
+        st.markdown("**Zona locuibilă** (Kasting et al. 1993) — limitele optimiste:")
+        st.latex(r"\text{Interior} = \sqrt{\frac{L}{1.1}} \quad\text{UA},\qquad \text{Exterior} = \sqrt{\frac{L}{0.53}} \quad\text{UA}")
+        st.markdown("Luminozitatea stelară:")
+        st.latex(r"L = \left(\frac{R_*}{R_\odot}\right)^2 \cdot \left(\frac{T_\text{eff}}{5778}\right)^4 L_\odot")
+
 # Afișează butonul de descărcare PDF dacă analiza a fost completată
 if hasattr(st.session_state, 'pdf_export_data') and st.session_state.pdf_export_data:
     st.divider()
@@ -108,7 +149,13 @@ if hasattr(st.session_state, 'pdf_export_data') and st.session_state.pdf_export_
         period=pdf_data['period'],
         depth=pdf_data['depth'],
         radius=pdf_data['radius'],
-        figure=pdf_data['figure']
+        figure=pdf_data['figure'],
+        semi_major_axis=pdf_data.get('semi_major_axis'),
+        hz_inner=pdf_data.get('hz_inner'),
+        hz_outer=pdf_data.get('hz_outer'),
+        star_mass=pdf_data.get('star_mass'),
+        star_teff=pdf_data.get('star_teff'),
+        star_luminosity=pdf_data.get('star_luminosity')
     )
 
     if hasattr(st.session_state, 'pdf_export_data') and st.session_state.pdf_export_data:
@@ -125,7 +172,13 @@ if hasattr(st.session_state, 'pdf_export_data') and st.session_state.pdf_export_
                 period=pdf_data['period'],
                 depth=pdf_data['depth'],
                 radius=pdf_data['radius'],
-                figure=pdf_data['figure']
+                figure=pdf_data['figure'],
+                semi_major_axis=pdf_data.get('semi_major_axis'),
+                hz_inner=pdf_data.get('hz_inner'),
+                hz_outer=pdf_data.get('hz_outer'),
+                star_mass=pdf_data.get('star_mass'),
+                star_teff=pdf_data.get('star_teff'),
+                star_luminosity=pdf_data.get('star_luminosity')
             )
         
             st.download_button(

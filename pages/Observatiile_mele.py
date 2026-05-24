@@ -8,6 +8,8 @@ st.set_page_config(page_title="Observațiile Mele", layout="wide")
 set_sidebar_style()
 set_galaxy_background("default")
 
+st.logo("assets/ExoLogo_noBg.png", size="large")
+
 st.title("Jurnalul meu Astronomic")
 
 # Verificăm dacă utilizatorul este logat

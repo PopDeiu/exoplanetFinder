@@ -23,6 +23,7 @@ st.set_page_config(
 # --- Aplicare styling ---
 set_sidebar_style()
 set_galaxy_background("default")
+st.logo("assets/ExoLogo_noBg.png", size="large")
 
 # --- Logică Auto-Login (Refresh Persistence) ---
 if 'logged_in' not in st.session_state:

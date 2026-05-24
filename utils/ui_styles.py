@@ -68,5 +68,14 @@ def set_sidebar_style():
             position: relative;
             z-index: 10;
         }
+
+        /* Logo cu spațiu deasupra */
+        [data-testid="stSidebarHeader"] {
+            padding-top: 20px !important;
+        }
+        [data-testid="stSidebarHeader"] img {
+            width: 80px !important;
+            height: auto !important;
+        }
     </style>
     """, unsafe_allow_html=True)

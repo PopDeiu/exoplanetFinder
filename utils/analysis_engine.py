@@ -10,12 +10,13 @@ from .data_fetchers import get_star_parameters
 from io import BytesIO
 from reportlab.lib.pagesizes import letter, landscape
 from reportlab.lib.units import inch
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image, PageBreak
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image, Table
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.enums import TA_CENTER, TA_LEFT
+from reportlab.lib import colors
 from PIL import Image as PILImage
 
-def generate_pdf_report(star_name, period, depth, radius, figure):
+def generate_pdf_report(star_name, period, depth, radius, figure, semi_major_axis=None, hz_inner=None, hz_outer=None, star_mass=None, star_teff=None, star_luminosity=None):
     """
     Generează un raport PDF cu rezultatele analizei exoplanetei.
     
@@ -25,83 +26,107 @@ def generate_pdf_report(star_name, period, depth, radius, figure):
     - depth: Adâncime (depth)
     - radius: Raza estimată
     - figure: Figure matplotlib cu graficul
+    - semi_major_axis: Semi-axa mare (UA)
+    - hz_inner: Zona locuibilă interioară (UA)
+    - hz_outer: Zona locuibilă exterioară (UA)
+    - star_mass: Masa stelei (M☉)
+    - star_teff: Temperatura efectivă (K)
+    - star_luminosity: Luminozitatea (L☉)
     
     Returns:
     - bytes_pdf: Fișierul PDF în format bytes
     """
     
-    # Creează un buffer pentru PDF
     pdf_buffer = BytesIO()
-    
-    # Creează documentul PDF în format landscape
-    doc = SimpleDocTemplate(pdf_buffer, pagesize=landscape(letter))
+
+    doc = SimpleDocTemplate(
+        pdf_buffer, pagesize=landscape(letter),
+        topMargin=0.4*inch, bottomMargin=0.3*inch,
+        leftMargin=0.5*inch, rightMargin=0.5*inch
+    )
     styles = getSampleStyleSheet()
-    
-    # Creează stiluri personalizate
+
     title_style = ParagraphStyle(
-        'CustomTitle',
-        parent=styles['Heading1'],
-        fontSize=24,
-        textColor="#000000",
-        spaceAfter=30,
-        alignment=TA_CENTER,
+        'CustomTitle', parent=styles['Heading1'],
+        fontSize=20, textColor="#A132DD", spaceAfter=8,
+        alignment=TA_CENTER, fontName='Helvetica-Bold'
+    )
+    cell_style = ParagraphStyle(
+        'CellStyle', parent=styles['Normal'],
+        fontSize=9, leading=13, spaceBefore=2, spaceAfter=2
+    )
+    cell_bold = ParagraphStyle(
+        'CellBold', parent=cell_style,
         fontName='Helvetica-Bold'
     )
-    
-    normal_style = styles['Normal']
-    heading_style = ParagraphStyle(
-        'CustomHeading',
-        parent=styles['Heading2'],
-        fontSize=14,
-        textColor="#A132DD",
-        spaceAfter=12,
-        fontName='Helvetica-Bold'
-    )
-    
-    # Lista de elemente pentru PDF
+
     elements = []
-    
-    # Titlu și mesaj de felicitări
-    elements.append(Paragraph(f"Felicitari! Ai gasit o potentiala exoplaneta in jurul stelei <b><font color=\"#A132DD\">{star_name}</font></b>!", title_style))
-    elements.append(Spacer(1, 0.15*inch))
-    
-    
-    # Convertește figura matplotlib în imagine PNG
+
+    # Titlu
+    elements.append(Paragraph(
+        f"Exoplaneta candidata in jurul stelei <b><font color=\"#A132DD\">{star_name}</font></b>",
+        title_style
+    ))
+    elements.append(Spacer(1, 0.08*inch))
+
+    # Graficul
     img_buffer = BytesIO()
-    figure.savefig(img_buffer, format='png', dpi=150, bbox_inches='tight')
+    figure.savefig(img_buffer, format='png', dpi=130, bbox_inches='tight')
     img_buffer.seek(0)
-    
-    
-    
-    # Redimensionează imaginea să încapă pe pagină
-    img = Image(img_buffer, width=7.5*inch, height=3.3*inch)
+    img = Image(img_buffer, width=7.8*inch, height=3.3*inch)
     elements.append(img)
-    elements.append(Spacer(1, 0.15*inch))
-    
-    # Adaugă o nouă pagină pentru metrici
-    
-    
-    # Metrici
-    elements.append(Paragraph("Rezultatele Analizei", heading_style))
-    elements.append(Spacer(1, 0.2*inch))
-    
-    metrics_text = f"""
-    <b>Perioada Gasita:</b> {period:.4f} zile<br/>
-    <b>Adancime:</b> {depth:.4f}<br/>
-    """
-    
-    if radius:
-        metrics_text += f"<b>Raza Estimata:</b> {radius:.2f} R⊕ (raze terestre)"
-    
-    elements.append(Paragraph(metrics_text, styles['Normal']))
-    elements.append(Spacer(1, 0.3*inch))
-    
-    
-    
-    # Construiește PDF-ul
+    elements.append(Spacer(1, 0.08*inch))
+
+    # Tabel cu 2 coloane
+    data_rows = [
+        [Paragraph("<b>Parametru</b>", cell_bold),
+         Paragraph("<b>Valoare</b>", cell_bold),
+         Paragraph("<b>Parametru</b>", cell_bold),
+         Paragraph("<b>Valoare</b>", cell_bold)],
+    ]
+
+    def add_pair(left_label, left_val, right_label, right_val):
+        data_rows.append([
+            Paragraph(left_label, cell_bold),
+            Paragraph(left_val, cell_style),
+            Paragraph(right_label, cell_bold),
+            Paragraph(right_val, cell_style),
+        ])
+
+    # Construim perechi stânga-dreapta
+    pairs = [
+        ("Perioada", f"{period:.4f} zile",
+         "Raza planetei", f"{radius:.2f} R⊕" if radius else "N/A"),
+        ("Adancime", f"{depth:.4f}",
+         "Masa stelei", f"{star_mass:.3f} M☉" if star_mass else "N/A"),
+        ("Temp. efectiva", f"{star_teff} K" if star_teff else "N/A",
+         "Luminozitate", f"{star_luminosity:.4f} L☉" if star_luminosity else "N/A"),
+        ("Semi-axa mare (a)", f"{semi_major_axis:.4f} UA" if semi_major_axis else "N/A",
+         "Zona loc. interioara", f"{hz_inner:.4f} UA" if hz_inner else "N/A"),
+        ("Formula a", "∛(M/M☉·(P/365.25)²)" if semi_major_axis else "N/A",
+         "Zona loc. exterioara", f"{hz_outer:.4f} UA" if hz_outer else "N/A"),
+    ]
+
+    for l_label, l_val, r_label, r_val in pairs:
+        add_pair(l_label, l_val, r_label, r_val)
+
+    col_widths = [1.6*inch, 2.3*inch, 1.6*inch, 2.3*inch]
+    table = Table(data_rows, colWidths=col_widths, repeatRows=1)
+    table.setStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor("#A132DD")),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+        ('ALIGN', (1, 0), (1, -1), 'LEFT'),
+        ('ALIGN', (3, 0), (3, -1), 'LEFT'),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('GRID', (0, 0), (-1, -1), 0.3, colors.HexColor("#CCCCCC")),
+        ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor("#F5F0F7")]),
+        ('TOPPADDING', (0, 0), (-1, -1), 3),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
+    ])
+
+    elements.append(table)
+
     doc.build(elements)
-    
-    # Obține bytes-ul PDF-ului
     pdf_buffer.seek(0)
     return pdf_buffer.getvalue()
 
@@ -111,7 +136,10 @@ def process_selected_data(selected_items, bin_minutes, outlier_sigma, period_min
     
     try:
         target_id = selected_items.table.to_pandas()['target_name'][0]
-        star_radius = get_star_parameters(target_id)
+        star_params = get_star_parameters(target_id)
+        star_radius = star_params['rad'] if star_params else None
+        star_mass = star_params['mass'] if star_params else None
+        star_teff = star_params['Teff'] if star_params else None
         
         st.header("Rezultatele Analizei Pas cu Pas")
         
@@ -186,13 +214,36 @@ def process_selected_data(selected_items, bin_minutes, outlier_sigma, period_min
             r_e = (star_radius * np.sqrt(best_depth) * u.R_sun).to(u.R_earth).value
             c3.metric("Raza Est.", f"{r_e:.2f} R⊕")
 
+        # Calcule: distanță planetă-stea (semi-axa mare) și zona locuibilă
+        semi_major_axis = None
+        hz_inner = None
+        hz_outer = None
+        L_val = None
+
+        if star_mass and best_p:
+            # Legea a III-a a lui Kepler: a³ = G·M·P²/(4π²)
+            # În unități solare: a (UA) = (M/M☉ · (P/365.25)²)^(1/3)
+            semi_major_axis = round((star_mass * (best_p / 365.25) ** 2) ** (1/3), 4)
+
+        if star_radius and star_teff:
+            # L/L☉ = (R/R☉)² · (T/T☉)⁴,  T☉ = 5778 K
+            L_val = (star_radius ** 2) * ((star_teff / 5778) ** 4)
+            hz_inner = round(np.sqrt(L_val / 1.1), 4)
+            hz_outer = round(np.sqrt(L_val / 0.53), 4)
+
         # Store data for PDF export
         st.session_state.pdf_export_data = {
             'star_name': target_id,
             'period': best_p,
             'depth': best_depth,
             'radius': r_e,
-            'figure': fig3
+            'figure': fig3,
+            'semi_major_axis': semi_major_axis,
+            'hz_inner': hz_inner,
+            'hz_outer': hz_outer,
+            'star_mass': round(star_mass, 3) if star_mass else None,
+            'star_teff': int(star_teff) if star_teff else None,
+            'star_luminosity': round(L_val, 4) if L_val else None,
         }
 
 

@@ -9,6 +9,7 @@ st.set_page_config(
 
 set_sidebar_style()
 set_galaxy_background("nebula")
+st.logo("assets/ExoLogo_noBg.png", size="large")
 
 # --- Inițializare session state din fișierul persistent ---
 init_session_state()
@@ -25,21 +26,22 @@ def save_all_settings():
     })
 
 # --- LOGICA DE RESET (Reparată: Ștergem și re-inițializăm) ---
-if st.sidebar.button("🔄 Reset la valori recomandate"):
-    for key in ['bin_size', 'sigma_val', 'period_range', 'selected_missions', 'selected_authors']:
-        if key in st.session_state:
-            del st.session_state[key]
-    
-    # Re-inițializăm valorile în state pentru a fi folosite ca 'value' mai jos
-    st.session_state.bin_size = 10
-    st.session_state.sigma_val = 5.0
-    st.session_state.period_range = (1.0, 30.0)
-    st.session_state.selected_missions = ["TESS", "Kepler", "K2"]
-    st.session_state.selected_authors = ["SPOC", "Kepler"]
-    
-    # Salvează reset-ul în fișier
-    save_all_settings()
-    st.rerun()
+with st.sidebar:
+    if st.button("🔄 Reset la valori recomandate"):
+        for key in ['bin_size', 'sigma_val', 'period_range', 'selected_missions', 'selected_authors']:
+            if key in st.session_state:
+                del st.session_state[key]
+        
+        # Re-inițializăm valorile în state pentru a fi folosite ca 'value' mai jos
+        st.session_state.bin_size = 10
+        st.session_state.sigma_val = 5.0
+        st.session_state.period_range = (1.0, 30.0)
+        st.session_state.selected_missions = ["TESS", "Kepler", "K2"]
+        st.session_state.selected_authors = ["SPOC", "Kepler"]
+        
+        # Salvează reset-ul în fișier
+        save_all_settings()
+        st.rerun()
 
 st.header(" Configurare Vânător de Exoplanete")
 st.markdown("""
