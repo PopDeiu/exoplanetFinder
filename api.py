@@ -1,9 +1,11 @@
 from fastapi import FastAPI, HTTPException, Query
+from fastapi.responses import FileResponse
 from typing import Optional
 from pydantic import BaseModel
 from utils import get_all_naked_eye_stars, get_real_stars_by_bortle, get_connection, update_app_setting
 from utils import get_saved_location
 from utils.database import get_all_settings
+import os
 
 
 class SteaCurentaRequest(BaseModel):
@@ -106,6 +108,16 @@ def set_current_star(request: SteaCurentaRequest):
         tic_id = f"TIC {tic_id}"
     update_app_setting("stea_curenta", tic_id)
     return {"status": "succes", "TIC_ID": tic_id}
+
+@app.get("/api/assets/{filename:path}")
+def serve_asset(filename: str):
+    """Servește fișiere din directorul assets (inclusiv videoclipuri)."""
+    assets_dir = os.path.join(os.path.dirname(__file__), "assets")
+    file_path = os.path.abspath(os.path.join(assets_dir, filename))
+    # Security: ensure we don't escape the assets directory
+    if not file_path.startswith(assets_dir) or not os.path.isfile(file_path):
+        raise HTTPException(status_code=404, detail="Fișierul nu a fost găsit")
+    return FileResponse(file_path)
 
 @app.get("/api/stele/nasa/{bortle_level}")
 def get_nasa_stars_by_bortle(
