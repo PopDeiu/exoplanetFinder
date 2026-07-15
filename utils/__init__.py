@@ -7,14 +7,30 @@ from .ui_styles import (
     apply_pro_plotting_style
 )
 # Adaugă asta la finalul fișierului utils/__init__.py
-from .database import (  # Înlocuiește 'database' cu numele real al fișierului tău
+from .database import (
     get_connection,
     get_all_naked_eye_stars,
     get_real_stars_by_bortle,
     clear_all_naked_eye_stars,
     bulk_save_stars,
     get_saved_location,
-    update_app_setting
+    update_app_setting,
+    save_scenariu,
+    get_all_scenarii,
+    get_scenariu_by_id,
+    delete_scenariu,
+    rename_scenariu,
+    init_lectii_table,
+    save_lectie,
+    get_all_lectii,
+    get_lectie_by_id,
+    delete_lectie,
+    rename_lectie,
+    ensure_tables_have_user_id,
+    get_stars_bortle_by_level,
+    init_stars_bortle_table,
+    clear_stars_by_bortle,
+    bulk_save_stars_bortle
 )
 
 from .data_fetchers import (

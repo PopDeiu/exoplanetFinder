@@ -1,18 +1,9 @@
 import streamlit as st
-from streamlit_cookies_manager import EncryptedCookieManager
 from utils.ui_styles import set_galaxy_background, set_sidebar_style
 from utils.settings_manager import load_settings
-from utils.database import verify_credentials, register_user, get_user_by_id
-import os
+from utils.auth import init_auth, render_sidebar_auth
 
-# --- Gestionare Cookie-uri ---
-# Folosește o parolă sigură pentru criptarea cookie-urilor
-cookies = EncryptedCookieManager(
-    password=os.getenv("COOKIE_PASSWORD", "parola-secreta-exoplanet-2026"),
-)
-
-if not cookies.ready():
-    st.stop() # Așteptăm încărcarea cookie-urilor din browser
+init_auth()
 
 st.set_page_config(
     page_title="Vânătorul de exoplanete AI",
@@ -25,83 +16,14 @@ set_sidebar_style()
 set_galaxy_background("default")
 st.logo("assets/ExoLogo_noBg.png", size="large")
 
-# --- Logică Auto-Login (Refresh Persistence) ---
-if 'logged_in' not in st.session_state:
-    saved_user_id = cookies.get('user_id')
-    if saved_user_id:
-        user_data = get_user_by_id(saved_user_id)
-        if user_data:
-            st.session_state.logged_in = True
-            st.session_state.user_info = user_data
-        else:
-            st.session_state.logged_in = False
-    else:
-        st.session_state.logged_in = False
-
-# --- Sidebar Content (Codul tău intact + Remember Me) ---
+# --- Sidebar Content ---
 with st.sidebar:
-    if not st.session_state.logged_in:
-        # Alegem ce vrem să facem: Login sau Cont Nou
-        menu = st.radio("Navigare Cont", ["Login", "Înregistrare"], horizontal=True)
-        
-        if menu == "Login":
-            with st.form("login_form"):
-                st.subheader("Autentificare")
-                user_in = st.text_input("Username")
-                pass_in = st.text_input("Password", type="password")
-                remember_me = st.checkbox("Ține-mă minte (Rămâi logat)")
-                
-                if st.form_submit_button("Log In", use_container_width=True):
-                    user_data = verify_credentials(user_in, pass_in)
-                    if user_data:
-                        st.session_state.logged_in = True
-                        st.session_state.user_info = user_data
-                        
-                        if remember_me:
-                            cookies['user_id'] = str(user_data['ID'])
-                            cookies.save() # Salvează ID-ul în browser
-                        
-                        st.success(f"Salut, {user_in}!")
-                        st.rerun()
-                    else:
-                        st.error("Credentiale incorecte")
-        
-        else: # Secțiunea de Înregistrare
-            with st.form("register_form"):
-                st.subheader("Creare Cont Nou")
-                new_user = st.text_input("Alege Username")
-                new_pass = st.text_input("Alege Parolă", type="password")
-                confirm_pass = st.text_input("Confirmă Parolă", type="password")
-                
-                if st.form_submit_button("Înregistrează-te", use_container_width=True):
-                    if new_pass != confirm_pass:
-                        st.error("Parolele nu coincid!")
-                    elif len(new_user) < 3:
-                        st.error("Username-ul este prea scurt!")
-                    else:
-                        success, message = register_user(new_user, new_pass)
-                        if success:
-                            st.success(message)
-                            st.info("Acum te poți loga din meniul de Login.")
-                        else:
-                            st.error(message)
-    else:
-        # Afișare când este logat
-        # Folosesc 'username' în loc de 'user' deoarece așa este de obicei în DB
-        username_display = st.session_state.user_info.get('user', 'Utilizator')
-        st.write(f"✅ Logat ca: **{username_display}**")
-        if st.button("Deconectare", use_container_width=True):
-            st.session_state.logged_in = False
-            st.session_state.user_info = None
-            if 'user_id' in cookies:
-                del cookies['user_id']
-                cookies.save()
-            st.rerun()
+    render_sidebar_auth()
 
-    st.sidebar.success("Alege o pagină din meniu pentru a începe explorarea.")
-    st.sidebar.divider()
-    st.sidebar.header("Despre aplicație")
-    st.sidebar.info(
+    st.success("Alege o pagină din meniu pentru a începe explorarea.")
+    st.divider()
+    st.header("Despre aplicație")
+    st.info(
         "„Vânătorul de exoplanete AI” folosește date de la misiunile spațiale TESS și Kepler..."
     )
 

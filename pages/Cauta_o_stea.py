@@ -4,6 +4,9 @@ import streamlit as st
 import lightkurve as lk
 from utils import process_selected_data, set_galaxy_background, set_sidebar_style, init_session_state, generate_pdf_report
 from utils.database import save_star_observation, get_all_settings
+from utils.auth import init_auth, render_sidebar_auth
+
+init_auth()
 
 st.set_page_config(
     page_title="Caută o stea",
@@ -14,14 +17,14 @@ st.set_page_config(
 if 'search_result' not in st.session_state:
     st.session_state.search_result = None
 
-# (Opțional) Dacă folosești și alte variabile care dau erori similare:
-if 'logged_in' not in st.session_state:
-    st.session_state.logged_in = False
 # --- Aplicare styling IMEDIAT ---
 set_sidebar_style()
 set_galaxy_background("nebula")
 
 st.logo("assets/ExoLogo_noBg.png", size="large")
+
+with st.sidebar:
+    render_sidebar_auth()
 
 # --- Inițializare session state din setări persistente ---
 init_session_state()

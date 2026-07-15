@@ -6,8 +6,9 @@ from dotenv import load_dotenv
 import pandas as pd
 from astroquery.mast import Catalogs
 from astroquery.simbad import Simbad
-from .data_fetchers import get_common_name 
+from .data_fetchers import get_common_name
 from .data_fetchers import get_common_name_from_simbad
+from .tts_utils import generate_scenario_wav
 
 # Încărcăm variabilele de mediu
 load_dotenv()
@@ -18,8 +19,12 @@ def update_app_setting(nume_setare, valoare_noua):
         st.error("Nu s-a putut conecta la DB pentru a salva setarea.")
         return
     cursor = conn.cursor()
+    valoare_str = str(valoare_noua)
     try:
-        cursor.execute("UPDATE setariVR SET valoare = %s WHERE setare = %s", (str(valoare_noua), nume_setare))
+        cursor.execute(
+            "UPDATE setariVR SET valoare = %s WHERE setare = %s",
+            (valoare_str, nume_setare)
+        )
         conn.commit()
     except Exception as e:
         st.error(f"Eroare la update DB: {e}")
@@ -287,6 +292,86 @@ def bulk_save_stars(stars_list):
     return False
 
 
+def init_stars_bortle_table():
+    conn = get_connection()
+    if conn:
+        try:
+            cursor = conn.cursor()
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS stars_bortle (
+                    ID INT AUTO_INCREMENT PRIMARY KEY,
+                    TIC_ID VARCHAR(255),
+                    name VARCHAR(255),
+                    ra VARCHAR(50),
+                    declination VARCHAR(50),
+                    description TEXT,
+                    bortle INT NOT NULL
+                )
+            """)
+            conn.commit()
+            cursor.close()
+        except Exception as e:
+            st.error(f"Eroare la crearea tabelului stars_bortle: {e}")
+        finally:
+            conn.close()
+
+
+def clear_stars_by_bortle(bortle_level):
+    """Șterge doar stelele dintr-un nivel Bortle specific."""
+    conn = get_connection()
+    if conn:
+        try:
+            cursor = conn.cursor()
+            cursor.execute("DELETE FROM stars_bortle WHERE bortle = %s", (bortle_level,))
+            conn.commit()
+            cursor.close()
+            return True
+        except Exception as e:
+            st.error(f"Eroare la ștergerea stelelor după bortle: {e}")
+            return False
+        finally:
+            conn.close()
+    return False
+
+
+def bulk_save_stars_bortle(stars_list, bortle_level):
+    """Salvează stele într-un nivel Bortle specific."""
+    conn = get_connection()
+    if conn:
+        try:
+            cursor = conn.cursor()
+            sql = """INSERT INTO stars_bortle (TIC_ID, name, ra, declination, description, bortle) 
+                     VALUES (%s, %s, %s, %s, %s, %s)"""
+            stars_with_bortle = [(*star, bortle_level) for star in stars_list]
+            cursor.executemany(sql, stars_with_bortle)
+            conn.commit()
+            cursor.close()
+            return True
+        except Exception as e:
+            print(f"Eroare la bulk insert stars_bortle: {e}")
+            return False
+        finally:
+            conn.close()
+    return False
+
+
+def get_stars_bortle_by_level(bortle_level):
+    """Returnează stelele dintr-un nivel Bortle specific."""
+    conn = get_connection()
+    if conn:
+        try:
+            cursor = conn.cursor(dictionary=True)
+            cursor.execute("SELECT ID, TIC_ID, name, ra, declination, description, bortle FROM stars_bortle WHERE bortle = %s ORDER BY ID DESC", (bortle_level,))
+            results = cursor.fetchall()
+            cursor.close()
+            return results
+        except Exception as e:
+            print(f"Eroare la citirea stelelor după bortle: {e}")
+            return []
+        finally:
+            conn.close()
+    return []
+
 
 
 def get_real_stars_by_bortle(bortle_level, limit=100, lat=None, lon=None):
@@ -471,3 +556,288 @@ def get_saved_location():
             
     # Returnăm None dacă nu găsim locația în DB
     return None, None
+
+
+def ensure_tables_have_user_id():
+    conn = get_connection()
+    if conn:
+        try:
+            cursor = conn.cursor()
+            for table in ['scenarii', 'lectii']:
+                cursor.execute(
+                    "SELECT COUNT(*) FROM information_schema.COLUMNS "
+                    "WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = %s AND COLUMN_NAME = 'user_id'",
+                    (table,)
+                )
+                exists = cursor.fetchone()[0] > 0
+                if not exists:
+                    cursor.execute(f"ALTER TABLE {table} ADD COLUMN user_id INT DEFAULT NULL")
+            conn.commit()
+            cursor.close()
+        except Exception as e:
+            logging.error(f"Eroare la migrarea tabelelor: {e}")
+        finally:
+            conn.close()
+
+
+def save_scenariu(nume, viteza, bortle, longitudine, latitudine, data_si_ora_obs, foloseste_data_curenta, afisare_constelatii, text="", durata=0, user_id=None, scenariu_id=None):
+    conn = get_connection()
+    if conn:
+        try:
+            cursor = conn.cursor()
+            existing_id = None
+            if scenariu_id is not None:
+                existing_id = scenariu_id
+                cursor.execute("""
+                    UPDATE scenarii SET nume=%s, viteza=%s, bortle=%s, longitudine=%s, latitudine=%s,
+                    data_si_ora_obs=%s, foloseste_data_curenta=%s, afisare_constelatii=%s,
+                    text=%s, durata=%s
+                    WHERE ID=%s AND user_id=%s
+                """, (nume, str(viteza), str(bortle), str(longitudine), str(latitudine),
+                      str(data_si_ora_obs), str(foloseste_data_curenta), str(afisare_constelatii),
+                      str(text), str(durata), scenariu_id, user_id))
+            else:
+                cursor.execute(
+                    "SELECT ID FROM scenarii WHERE nume = %s AND user_id = %s", (nume, user_id)
+                )
+                row = cursor.fetchone()
+                if row:
+                    existing_id = row[0]
+                    cursor.execute("""
+                        UPDATE scenarii SET viteza=%s, bortle=%s, longitudine=%s, latitudine=%s,
+                        data_si_ora_obs=%s, foloseste_data_curenta=%s, afisare_constelatii=%s,
+                        text=%s, durata=%s
+                        WHERE ID=%s AND user_id=%s
+                    """, (str(viteza), str(bortle), str(longitudine), str(latitudine),
+                          str(data_si_ora_obs), str(foloseste_data_curenta), str(afisare_constelatii),
+                          str(text), str(durata), existing_id, user_id))
+                else:
+                    cursor.execute("""
+                        INSERT INTO scenarii (nume, viteza, bortle, longitudine, latitudine, data_si_ora_obs, foloseste_data_curenta, afisare_constelatii, text, durata, user_id)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    """, (nume, str(viteza), str(bortle), str(longitudine), str(latitudine),
+                          str(data_si_ora_obs), str(foloseste_data_curenta), str(afisare_constelatii),
+                          str(text), str(durata), user_id))
+                    existing_id = cursor.lastrowid
+            conn.commit()
+            cursor.close()
+
+            if text and text.strip():
+                wav_result = generate_scenario_wav(existing_id, text)
+                if wav_result:
+                    st.session_state['_tts_msg'] = ("success", f"🔊 Audio regenerat cu succes pentru scenariul ID {existing_id}")
+                else:
+                    st.session_state['_tts_msg'] = ("warning", f"TTS a eșuat pentru scenariul ID {existing_id}. Verifică textul introdus.")
+            else:
+                wav_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "assets", f"{existing_id}.wav")
+                if os.path.exists(wav_path):
+                    os.remove(wav_path)
+                    st.session_state['_tts_msg'] = ("info", f"Fișierul audio pentru scenariul ID {existing_id} a fost șters (text gol).")
+
+            return existing_id
+        except Exception as e:
+            st.error(f"Eroare la salvarea scenariului: {e}")
+            return False
+        finally:
+            conn.close()
+    return False
+
+
+def get_all_scenarii(user_id=None):
+    conn = get_connection()
+    if conn:
+        try:
+            cursor = conn.cursor(dictionary=True)
+            if user_id is not None:
+                cursor.execute("SELECT * FROM scenarii WHERE user_id = %s ORDER BY nume ASC", (user_id,))
+            else:
+                cursor.execute("SELECT * FROM scenarii ORDER BY nume ASC")
+            results = cursor.fetchall()
+            cursor.close()
+            return results
+        except Exception as e:
+            st.error(f"Eroare la citirea scenariilor: {e}")
+            return []
+        finally:
+            conn.close()
+    return []
+
+
+def get_scenariu_by_id(scenariu_id, user_id=None):
+    conn = get_connection()
+    if conn:
+        try:
+            cursor = conn.cursor(dictionary=True)
+            if user_id is not None:
+                cursor.execute("SELECT * FROM scenarii WHERE ID = %s AND user_id = %s", (scenariu_id, user_id))
+            else:
+                cursor.execute("SELECT * FROM scenarii WHERE ID = %s", (scenariu_id,))
+            result = cursor.fetchone()
+            cursor.close()
+            return result
+        except Exception as e:
+            st.error(f"Eroare la citirea scenariului: {e}")
+            return None
+        finally:
+            conn.close()
+    return None
+
+
+def delete_scenariu(scenariu_id, user_id=None):
+    conn = get_connection()
+    if conn:
+        try:
+            cursor = conn.cursor()
+            cursor.execute("DELETE FROM scenarii WHERE ID = %s AND user_id = %s", (scenariu_id, user_id))
+            conn.commit()
+            cursor.close()
+            return True
+        except Exception as e:
+            st.error(f"Eroare la ștergerea scenariului: {e}")
+            return False
+        finally:
+            conn.close()
+    return False
+
+
+def rename_scenariu(scenariu_id, nume_nou, user_id=None):
+    conn = get_connection()
+    if conn:
+        try:
+            cursor = conn.cursor()
+            cursor.execute("UPDATE scenarii SET nume = %s WHERE ID = %s AND user_id = %s", (nume_nou, scenariu_id, user_id))
+            conn.commit()
+            cursor.close()
+            return True
+        except Exception as e:
+            st.error(f"Eroare la redenumirea scenariului: {e}")
+            return False
+        finally:
+            conn.close()
+    return False
+
+
+# ========== LECȚII (LESSONS) ==========
+
+def init_lectii_table():
+    conn = get_connection()
+    if conn:
+        try:
+            cursor = conn.cursor()
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS lectii (
+                    ID INT AUTO_INCREMENT PRIMARY KEY,
+                    nume VARCHAR(255) NOT NULL,
+                    descriere TEXT,
+                    scenarii_ids TEXT NOT NULL,
+                    user_id INT DEFAULT NULL
+                )
+            """)
+            conn.commit()
+            cursor.close()
+        except Exception as e:
+            st.error(f"Eroare la crearea tabelului lectii: {e}")
+        finally:
+            conn.close()
+
+
+def save_lectie(nume, descriere, scenarii_ids, user_id=None):
+    conn = get_connection()
+    if conn:
+        try:
+            cursor = conn.cursor()
+            cursor.execute("SELECT ID FROM lectii WHERE nume = %s AND user_id = %s", (nume, user_id))
+            existing = cursor.fetchone()
+            if existing:
+                cursor.execute(
+                    "UPDATE lectii SET descriere=%s, scenarii_ids=%s WHERE ID=%s AND user_id=%s",
+                    (descriere, scenarii_ids, existing[0], user_id)
+                )
+            else:
+                cursor.execute(
+                    "INSERT INTO lectii (nume, descriere, scenarii_ids, user_id) VALUES (%s, %s, %s, %s)",
+                    (nume, descriere, scenarii_ids, user_id)
+                )
+            conn.commit()
+            cursor.close()
+            return True
+        except Exception as e:
+            st.error(f"Eroare la salvarea lecției: {e}")
+            return False
+        finally:
+            conn.close()
+    return False
+
+
+def get_all_lectii(user_id=None):
+    conn = get_connection()
+    if conn:
+        try:
+            cursor = conn.cursor(dictionary=True)
+            if user_id is not None:
+                cursor.execute("SELECT * FROM lectii WHERE user_id = %s ORDER BY nume ASC", (user_id,))
+            else:
+                cursor.execute("SELECT * FROM lectii ORDER BY nume ASC")
+            results = cursor.fetchall()
+            cursor.close()
+            return results
+        except Exception as e:
+            st.error(f"Eroare la citirea lecțiilor: {e}")
+            return []
+        finally:
+            conn.close()
+    return []
+
+
+def get_lectie_by_id(lectie_id, user_id=None):
+    conn = get_connection()
+    if conn:
+        try:
+            cursor = conn.cursor(dictionary=True)
+            if user_id is not None:
+                cursor.execute("SELECT * FROM lectii WHERE ID = %s AND user_id = %s", (lectie_id, user_id))
+            else:
+                cursor.execute("SELECT * FROM lectii WHERE ID = %s", (lectie_id,))
+            result = cursor.fetchone()
+            cursor.close()
+            return result
+        except Exception as e:
+            st.error(f"Eroare la citirea lecției: {e}")
+            return None
+        finally:
+            conn.close()
+    return None
+
+
+def delete_lectie(lectie_id, user_id=None):
+    conn = get_connection()
+    if conn:
+        try:
+            cursor = conn.cursor()
+            cursor.execute("DELETE FROM lectii WHERE ID = %s AND user_id = %s", (lectie_id, user_id))
+            conn.commit()
+            cursor.close()
+            return True
+        except Exception as e:
+            st.error(f"Eroare la ștergerea lecției: {e}")
+            return False
+        finally:
+            conn.close()
+    return False
+
+
+def rename_lectie(lectie_id, nume_nou, user_id=None):
+    conn = get_connection()
+    if conn:
+        try:
+            cursor = conn.cursor()
+            cursor.execute("UPDATE lectii SET nume = %s WHERE ID = %s AND user_id = %s", (nume_nou, lectie_id, user_id))
+            conn.commit()
+            cursor.close()
+            return True
+        except Exception as e:
+            st.error(f"Eroare la redenumirea lecției: {e}")
+            return False
+        finally:
+            conn.close()
+    return False

@@ -2,6 +2,9 @@
 
 import streamlit as st
 from utils import fetch_catalog_targets, set_galaxy_background, set_sidebar_style
+from utils.auth import init_auth, render_sidebar_auth
+
+init_auth()
 
 st.set_page_config(
     page_title="False pozitive",
@@ -14,6 +17,9 @@ set_sidebar_style()
 set_galaxy_background("void")
 
 st.logo("assets/ExoLogo_noBg.png", size="large")
+
+with st.sidebar:
+    render_sidebar_auth()
 
 st.header("Semnale care NU sunt planete (false pozitive)")
 

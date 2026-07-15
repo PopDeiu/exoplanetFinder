@@ -1,5 +1,8 @@
 import streamlit as st
 from utils import set_galaxy_background, set_sidebar_style, init_session_state, save_settings
+from utils.auth import init_auth, render_sidebar_auth
+
+init_auth()
 
 st.set_page_config(
     page_title="Setări Analiză",
@@ -27,6 +30,7 @@ def save_all_settings():
 
 # --- LOGICA DE RESET (Reparată: Ștergem și re-inițializăm) ---
 with st.sidebar:
+    render_sidebar_auth()
     if st.button("🔄 Reset la valori recomandate"):
         for key in ['bin_size', 'sigma_val', 'period_range', 'selected_missions', 'selected_authors']:
             if key in st.session_state:

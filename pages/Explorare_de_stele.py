@@ -4,8 +4,11 @@ import streamlit as st
 import numpy as np
 from utils import fetch_star_data, set_galaxy_background, set_sidebar_style
 from utils.database import get_all_settings
+from utils.auth import init_auth, render_sidebar_auth
 from astroquery.skyview import SkyView
 from astropy.wcs import WCS
+
+init_auth()
 
 st.set_page_config(
     page_title="Explorator de stele",
@@ -20,6 +23,9 @@ set_sidebar_style()
 set_galaxy_background("cosmic")
 
 st.logo("assets/ExoLogo_noBg.png", size="large")
+
+with st.sidebar:
+    render_sidebar_auth()
 
 st.header("Explorator de stele")
 st.caption(

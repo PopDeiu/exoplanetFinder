@@ -3,7 +3,10 @@
 import streamlit as st
 import numpy as np
 from utils import search_toi_catalog, set_galaxy_background, set_sidebar_style
+from utils.auth import init_auth, render_sidebar_auth
 import pandas as pd
+
+init_auth()
 
 st.set_page_config(
     page_title="Căutare de planete TESS",
@@ -16,6 +19,9 @@ set_sidebar_style()
 set_galaxy_background("stellar")
 
 st.logo("assets/ExoLogo_noBg.png", size="large")
+
+with st.sidebar:
+    render_sidebar_auth()
 
 st.header("🔍 Căutare de planete TESS")
 st.caption("Interfață pentru filtrarea și explorarea catalogului oficial TOI (TESS Objects of Interest) al misiunii NASA.")

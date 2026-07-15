@@ -2,6 +2,9 @@
 
 import streamlit as st
 from utils import fetch_catalog_targets, set_galaxy_background, set_sidebar_style
+from utils.auth import init_auth, render_sidebar_auth
+
+init_auth()
 
 st.set_page_config(
     page_title="Explorează planete",
@@ -14,6 +17,9 @@ set_sidebar_style()
 set_galaxy_background("cosmic")
 
 st.logo("assets/ExoLogo_noBg.png", size="large")
+
+with st.sidebar:
+    render_sidebar_auth()
 
 st.header("Descoperă candidați interesanți la planete")
 

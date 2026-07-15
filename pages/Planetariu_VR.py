@@ -4,51 +4,46 @@ import pytz
 from utils.data_fetchers import get_stars_from_simbad, get_stars_with_confirmed_planets
 from utils.database import clear_all_naked_eye_stars, bulk_save_stars, get_all_settings, update_app_setting
 from utils.ui_styles import set_galaxy_background, set_sidebar_style
+from utils.auth import init_auth, render_sidebar_auth
 
 # Configurare zonă orară România
 RO_TZ = pytz.timezone('Europe/Bucharest')
-nume_oras = st.session_state.city_selector if "city_selector" in st.session_state else "Arad"
 # --- FUNCȚIE ÎNCĂRCARE SETĂRI ---
 def load_settings_into_session():
-    """Citește din DB și pune în session_state dacă nu există deja"""
+    """Citește din DB și actualizează session_state."""
     db_settings = get_all_settings()
-    
-    if db_settings:
-        # Mapăm valorile din DB în session_state
-        if "lat" not in st.session_state:
-            st.session_state.lat = float(db_settings.get("latitudine", 46.1866))
-        if "lon" not in st.session_state:
-            st.session_state.lon = float(db_settings.get("longitudine", 21.3123))
-        if "viteza_slider" not in st.session_state:
-            st.session_state.viteza_slider = int(db_settings.get("viteza", 0))
-        if "city_selector" not in st.session_state:
-            st.session_state.city_selector = db_settings.get("oras", "Arad")
-        if "bortle_slider" not in st.session_state:
-            st.session_state.bortle_slider = int(db_settings.get("bortle", 4))
-        if "use_current_time_check" not in st.session_state:
-            val_db = db_settings.get("foloseste_data_curenta", "da")
-            st.session_state.use_current_time_check = True if val_db == "da" else False
-        if "afisare_constelatii" not in st.session_state:
-            val_db = db_settings.get("afisare_constelatii", "da")
-            st.session_state.afisare_constelatii = True if val_db == "da" else False
-        if "manual_date" not in st.session_state or "manual_time" not in st.session_state:
-            data_db = db_settings.get("data_si_ora_obs")
-            if data_db:
-                try:
-                    dt_obj = datetime.strptime(data_db, "%Y-%m-%d %H:%M:%S")
-                    st.session_state.manual_date = dt_obj.date()
-                    st.session_state.manual_time = dt_obj.time()
-                except:
-                    st.session_state.manual_date = datetime.now(RO_TZ).date()
-                    st.session_state.manual_time = datetime.now(RO_TZ).time()
+    default_time = datetime.now(RO_TZ)
+    st.session_state.lat = float(db_settings.get("latitudine", 46.1866))
+    st.session_state.lon = float(db_settings.get("longitudine", 21.3123))
+    st.session_state.viteza_slider = int(db_settings.get("viteza", 0))
+    st.session_state.city_selector = db_settings.get("oras", "Arad")
+    st.session_state.bortle_slider = int(db_settings.get("bortle", 4))
+    st.session_state.use_current_time_check = db_settings.get("foloseste_data_curenta", "da") == "da"
+    st.session_state.afisare_constelatii = db_settings.get("afisare_constelatii", "da") == "da"
+    data_db = db_settings.get("data_si_ora_obs")
+    if data_db:
+        try:
+            dt_obj = datetime.strptime(data_db, "%Y-%m-%d %H:%M:%S")
+            st.session_state.manual_date = dt_obj.date()
+            st.session_state.manual_time = dt_obj.time()
+        except:
+            st.session_state.manual_date = default_time.date()
+            st.session_state.manual_time = default_time.time()
+    else:
+        st.session_state.manual_date = default_time.date()
+        st.session_state.manual_time = default_time.time()
 
-# Apelăm funcția de încărcare imediat după importuri
-load_settings_into_session()
+# Reîncărcăm setările din DB doar la intrarea pe pagină
+if st.session_state.get("_last_page") != "Planetariu_VR":
+    load_settings_into_session()
+init_auth()
 
 st.set_page_config(page_title="Planetariu VR")
 set_sidebar_style()
 set_galaxy_background("stellar")
 st.logo("assets/ExoLogo_noBg.png", size="large")
+
+st.markdown("# Planetariu VR")
 
 # ========== DOWNLOAD VR APP ==========
 with st.sidebar:
@@ -61,6 +56,7 @@ with st.sidebar:
             mime="application/vnd.android.package-archive",
             use_container_width=True
         )
+    render_sidebar_auth()
 
 # --- ORASE PREDEFINITE (Fără "Personalizat") ---
 ORASE = {
@@ -149,7 +145,7 @@ with st.expander("2. Sincronizare după Locație și Timp", expanded=True):
     if st.button("Sincronizează Locație & Timp", type="primary", use_container_width=True):
         update_app_setting("latitudine", lat_val)
         update_app_setting("longitudine", lon_val)
-        update_app_setting("oras", nume_oras)
+        update_app_setting("oras", st.session_state.city_selector)
         update_app_setting("viteza", viteza_simulare)
         update_app_setting("foloseste_data_curenta", "da" if use_current_time else "nu")
         update_app_setting("data_si_ora_obs", final_time.strftime("%Y-%m-%d %H:%M:%S"))

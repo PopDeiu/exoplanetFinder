@@ -1,10 +1,13 @@
 import streamlit as st
 from utils import fetch_untested_targets, set_galaxy_background, set_sidebar_style
+from utils.auth import init_auth, render_sidebar_auth
 import pandas as pd
 from PIL import Image
 import os
 import base64
 from io import BytesIO
+
+init_auth()
 
 st.set_page_config(
     page_title="Ținte netestate",
@@ -17,6 +20,9 @@ set_sidebar_style()
 set_galaxy_background("stellar")
 
 st.logo("assets/ExoLogo_noBg.png", size="large")
+
+with st.sidebar:
+    render_sidebar_auth()
 
 st.header("Găsește ținte posibil netestate")
 st.caption("Descoperă stele interesante care nu au încă planete candidate oficiale asociate.")

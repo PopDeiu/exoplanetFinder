@@ -2,6 +2,9 @@ import streamlit as st
 import pandas as pd
 from utils.database import get_user_observations, delete_observation, update_observation_notes
 from utils.ui_styles import set_galaxy_background, set_sidebar_style
+from utils.auth import init_auth, render_sidebar_auth
+
+init_auth()
 
 st.set_page_config(page_title="Observațiile Mele", layout="wide")
 
@@ -9,6 +12,9 @@ set_sidebar_style()
 set_galaxy_background("default")
 
 st.logo("assets/ExoLogo_noBg.png", size="large")
+
+with st.sidebar:
+    render_sidebar_auth()
 
 st.title("Jurnalul meu Astronomic")
 

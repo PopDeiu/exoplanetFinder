@@ -2,9 +2,9 @@ from fastapi import FastAPI, HTTPException, Query
 from fastapi.responses import FileResponse
 from typing import Optional
 from pydantic import BaseModel
-from utils import get_all_naked_eye_stars, get_real_stars_by_bortle, get_connection, update_app_setting
+from utils import get_all_naked_eye_stars, get_stars_bortle_by_level, get_connection, update_app_setting
 from utils import get_saved_location
-from utils.database import get_all_settings
+from utils.database import get_all_settings, get_all_lectii, get_all_scenarii, get_scenariu_by_id
 import os
 
 
@@ -39,7 +39,8 @@ def get_app_settings():
             "viteza": int(settings.get("viteza", 0)),
             "foloseste_data_curenta": settings.get("foloseste_data_curenta"),
             "data_si_ora_obs": settings.get("data_si_ora_obs"),
-            "afisare_constelatii": settings.get("afisare_constelatii", "da")
+            "afisare_constelatii": settings.get("afisare_constelatii", "da"),
+            "lectie_activa": int(settings.get("lectie_activa", 0))
         }
     }
 
@@ -119,25 +120,110 @@ def serve_asset(filename: str):
         raise HTTPException(status_code=404, detail="Fișierul nu a fost găsit")
     return FileResponse(file_path)
 
-@app.get("/api/stele/nasa/{bortle_level}")
-def get_nasa_stars_by_bortle(
-    bortle_level: int, 
-    limit: int = Query(50, description="Numărul maxim de stele returnate"),
-    
+@app.get("/api/lectii")
+def get_lectii(user_id: Optional[int] = Query(None, description="ID-ul utilizatorului pentru a filtra lecțiile")):
+    """
+    Returnează toate lecțiile, fiecare cu scenariile aferente (expandate din IDs).
+    Opțional, se poate filtra după user_id.
+    """
+    lectii = get_all_lectii(user_id)
+    scenarii = get_all_scenarii(user_id)
+    scenarii_map = {s["ID"]: s for s in scenarii}
+
+    rezultat = []
+    for lectie in lectii:
+        ids_str = lectie.get("scenarii_ids", "")
+        ids_list = [int(x) for x in ids_str.split(",") if x.strip().isdigit()]
+        scenarii_lectie = []
+        for sid in ids_list:
+            if sid in scenarii_map:
+                s = scenarii_map[sid]
+                scenarii_lectie.append({
+                    "id": s["ID"],
+                    "nume": s["nume"],
+                    "viteza": int(s["viteza"]),
+                    "bortle": int(s["bortle"]),
+                    "latitudine": float(s["latitudine"]),
+                    "longitudine": float(s["longitudine"]),
+                    "data_si_ora_obs": s["data_si_ora_obs"],
+                    "foloseste_data_curenta": s["foloseste_data_curenta"],
+                    "afisare_constelatii": s["afisare_constelatii"],
+                    "text": s["text"],
+                    "durata": int(s["durata"]) if s.get("durata") else 0
+                })
+
+        rezultat.append({
+            "id": lectie["ID"],
+            "nume": lectie["nume"],
+            "descriere": lectie.get("descriere", ""),
+            "user_id": lectie.get("user_id"),
+            "scenarii": scenarii_lectie
+        })
+
+    return {
+        "status": "succes",
+        "total": len(rezultat),
+        "date": rezultat
+    }
+
+
+@app.get("/api/lectii/{lectie_id}")
+def get_lectie_by_id(lectie_id: int):
+    """
+    Returnează o lecție specifică, cu scenariile aferente expandate.
+    """
+    from utils.database import get_lectie_by_id as db_get_lectie
+
+    lectie = db_get_lectie(lectie_id, user_id=None)
+    if not lectie:
+        raise HTTPException(status_code=404, detail="Lecția nu a fost găsită")
+
+    ids_str = lectie.get("scenarii_ids", "")
+    ids_list = [int(x) for x in ids_str.split(",") if x.strip().isdigit()]
+
+    scenarii = []
+    for sid in ids_list:
+        s = get_scenariu_by_id(sid, user_id=None)
+        if s:
+            scenarii.append({
+                "id": s["ID"],
+                "nume": s["nume"],
+                "viteza": int(s["viteza"]),
+                "bortle": int(s["bortle"]),
+                "latitudine": float(s["latitudine"]),
+                "longitudine": float(s["longitudine"]),
+                "data_si_ora_obs": s["data_si_ora_obs"],
+                "foloseste_data_curenta": s["foloseste_data_curenta"],
+                "afisare_constelatii": s["afisare_constelatii"],
+                "text": s["text"],
+                "durata": int(s["durata"]) if s.get("durata") else 0
+            })
+
+    return {
+        "status": "succes",
+        "date": {
+            "id": lectie["ID"],
+            "nume": lectie["nume"],
+            "descriere": lectie.get("descriere", ""),
+            "user_id": lectie.get("user_id"),
+            "scenarii": scenarii
+        }
+    }
+
+
+@app.get("/api/stele/{bortle_level}")
+def get_stars_by_bortle(
+    bortle_level: int,
 ):
     """
-    Ruta LIVE: Interoghează direct catalogul NASA (TIC) în funcție de nivelul Bortle.
+    Ruta LIVE: Returnează stelele din baza de date pentru un nivel Bortle specific.
     - bortle_level: între 1 (cer perfect) și 9 (centru oraș)
-    - limit: câte stele să aducă maxim (default 50)
-    - lat, lon: coordonatele observatorului
     """
     if bortle_level < 1 or bortle_level > 9:
         raise HTTPException(status_code=400, detail="Nivelul Bortle trebuie să fie între 1 și 9.")
         
-    # Trimitem coordonatele mai departe către funcția din utils
-    stele = get_real_stars_by_bortle(bortle_level, limit=limit)
+    stele = get_stars_bortle_by_level(bortle_level)
     
-    # Răspunsul JSON - elementele puse primele aici vor apărea primele în JSON
     return {
         "bortle_level": bortle_level,
         "total_gasite": len(stele),
