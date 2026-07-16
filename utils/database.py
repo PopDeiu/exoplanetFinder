@@ -2,6 +2,7 @@ import mysql.connector
 import os
 import logging
 import streamlit as st
+import bcrypt
 from dotenv import load_dotenv
 import pandas as pd
 from astroquery.mast import Catalogs
@@ -76,9 +77,10 @@ def register_user(username, password):
             if cursor.fetchone():
                 return False, "Utilizatorul există deja!"
             
-            # Insert noul user
+            # Hash parola cu bcrypt înainte de stocare
+            hashed = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
             sql = "INSERT INTO users (user, password) VALUES (%s, %s)"
-            cursor.execute(sql, (username, password))
+            cursor.execute(sql, (username, hashed.decode('utf-8')))
             conn.commit()
             cursor.close()
             return True, "Cont creat cu succes!"
@@ -193,12 +195,13 @@ def verify_credentials(username, password):
     if conn:
         try:
             cursor = conn.cursor(dictionary=True)
-            # Folosim interogare parametrizată pentru a preveni SQL Injection
-            sql = "SELECT * FROM users WHERE user = %s AND password = %s"
-            cursor.execute(sql, (username, password))
+            # Luăm user-ul după username, apoi verificăm parola cu bcrypt
+            cursor.execute("SELECT * FROM users WHERE user = %s", (username,))
             result = cursor.fetchone()
             cursor.close()
-            return result
+            if result and bcrypt.checkpw(password.encode('utf-8'), result['password'].encode('utf-8')):
+                return result
+            return None
         except mysql.connector.Error as err:
             st.error(f"Eroare la query: {err}")
         finally:

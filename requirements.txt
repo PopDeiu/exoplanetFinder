@@ -16,3 +16,4 @@ uvicorn
 streamlit-cookies-manager
 onnxruntime
 piper-tts
+bcrypt
