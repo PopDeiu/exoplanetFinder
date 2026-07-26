@@ -14,6 +14,20 @@ from utils.auth import init_auth, render_sidebar_auth
 
 RO_TZ = pytz.timezone('Europe/Bucharest')
 
+ORASE = {
+    "Arad": (46.1866, 21.3123),
+    "București": (44.4268, 26.1025),
+    "New York (NYC)": (40.7128, -74.0060),
+    "Tokyo": (35.6762, 139.6503),
+    "Londra": (51.5074, -0.1278),
+    "Sydney": (-33.8688, 151.2093),
+    "Buenos Aires": (-34.6037, -58.3816),
+    "Capetown": (-33.9249, 18.4241),
+    "Mexico City": (19.4326, -99.1332),
+    "Iași": (47.1585, 27.6014),
+}
+LOCATIE_CUSTOM = "Personalizat"
+
 def load_settings_into_session():
     """Citește din DB și actualizează session_state."""
     db_settings = get_all_settings()
@@ -82,20 +96,6 @@ if not st.session_state.get('logged_in', False):
     st.stop()
 
 user_id = st.session_state.user_info['ID']
-
-ORASE = {
-    "Arad": (46.1866, 21.3123),
-    "București": (44.4268, 26.1025),
-    "New York (NYC)": (40.7128, -74.0060),
-    "Tokyo": (35.6762, 139.6503),
-    "Londra": (51.5074, -0.1278),
-    "Sydney": (-33.8688, 151.2093),
-    "Buenos Aires": (-34.6037, -58.3816),
-    "Capetown": (-33.9249, 18.4241),
-    "Mexico City": (19.4326, -99.1332),
-    "Iași": (47.1585, 27.6014),
-}
-LOCATIE_CUSTOM = "Personalizat"
 
 if "lat" not in st.session_state:
     st.session_state.lat = 46.1866
