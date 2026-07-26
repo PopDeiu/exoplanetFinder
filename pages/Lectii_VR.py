@@ -21,7 +21,17 @@ def load_settings_into_session():
     st.session_state.lat = float(db_settings.get("latitudine", 46.1866))
     st.session_state.lon = float(db_settings.get("longitudine", 21.3123))
     st.session_state.viteza_slider = int(db_settings.get("viteza", 0))
-    st.session_state.city_selector = db_settings.get("oras", "Arad")
+    city_db = db_settings.get("oras", "Arad")
+    saved_lat = float(db_settings.get("latitudine", 46.1866))
+    saved_lon = float(db_settings.get("longitudine", 21.3123))
+    city_matches = False
+    for nume_s, (lat_s, lon_s) in ORASE.items():
+        if abs(lat_s - saved_lat) < 0.01 and abs(lon_s - saved_lon) < 0.01:
+            st.session_state.city_selector = nume_s
+            city_matches = True
+            break
+    if not city_matches:
+        st.session_state.city_selector = LOCATIE_CUSTOM
     st.session_state.bortle_slider = int(db_settings.get("bortle", 4))
     st.session_state.use_current_time_check = db_settings.get("foloseste_data_curenta", "da") == "da"
     st.session_state.afisare_constelatii = db_settings.get("afisare_constelatii", "da") == "da"
@@ -85,6 +95,7 @@ ORASE = {
     "Mexico City": (19.4326, -99.1332),
     "Iași": (47.1585, 27.6014),
 }
+LOCATIE_CUSTOM = "Personalizat"
 
 if "lat" not in st.session_state:
     st.session_state.lat = 46.1866
@@ -138,6 +149,8 @@ DURATA_PRESET = {
 
 def on_city_change():
     oras = st.session_state.city_selector
+    if oras == LOCATIE_CUSTOM:
+        return
     if oras in ORASE:
         st.session_state.lat = ORASE[oras][0]
         st.session_state.lon = ORASE[oras][1]
@@ -168,6 +181,8 @@ def _apply_pending_scenario():
         if abs(lat_s - float(scenariu["latitudine"])) < 0.01 and abs(lon_s - float(scenariu["longitudine"])) < 0.01:
             st.session_state.city_selector = nume_s
             break
+    else:
+        st.session_state.city_selector = LOCATIE_CUSTOM
     st.session_state.descriere_lectie = str(scenariu.get("text", ""))
     durata_val = int(scenariu.get("durata", 0))
     st.session_state.durata_custom = durata_val if durata_val > 0 else 30
@@ -220,7 +235,7 @@ def render_scenario_config(show_close=True):
 
         st.selectbox(
             "Alege un oraș preset:",
-            options=list(ORASE.keys()),
+            options=list(ORASE.keys()) + [LOCATIE_CUSTOM],
             key="city_selector",
             on_change=on_city_change
         )
