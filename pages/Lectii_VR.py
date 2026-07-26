@@ -143,7 +143,42 @@ def on_city_change():
         st.session_state.lon = ORASE[oras][1]
 
 # ========== FUNCȚIE CONFIGURARE SCENARIU ==========
+def _apply_pending_scenario():
+    """Aplică valorile unui scenariu încărcat (prin butonul 👁️) în cheile widgeturilor.
+    Trebuie apelată ÎNAINTE ca widgeturile să fie instanțiate, altfel Streamlit interzice
+    scrierea în st.session_state pentru o cheie de widget deja creată în acest run."""
+    scenariu = st.session_state.pop("_pending_scenario", None)
+    if not scenariu:
+        return
+    st.session_state.bortle_slider = int(scenariu["bortle"])
+    st.session_state.lat = float(scenariu["latitudine"])
+    st.session_state.lon = float(scenariu["longitudine"])
+    st.session_state.viteza_slider = int(scenariu["viteza"])
+    st.session_state.use_current_time_check = scenariu["foloseste_data_curenta"] in ("da", "True")
+    st.session_state.afisare_constelatii = scenariu["afisare_constelatii"] in ("da", "True")
+    data_ora = scenariu.get("data_si_ora_obs")
+    if data_ora and data_ora != "None":
+        try:
+            dt_obj = datetime.strptime(str(data_ora), "%Y-%m-%d %H:%M:%S")
+            st.session_state.manual_date = dt_obj.date()
+            st.session_state.manual_time = dt_obj.time()
+        except:
+            pass
+    for nume_s, (lat_s, lon_s) in ORASE.items():
+        if abs(lat_s - float(scenariu["latitudine"])) < 0.01 and abs(lon_s - float(scenariu["longitudine"])) < 0.01:
+            st.session_state.city_selector = nume_s
+            break
+    st.session_state.descriere_lectie = str(scenariu.get("text", ""))
+    durata_val = int(scenariu.get("durata", 0))
+    st.session_state.durata_custom = durata_val if durata_val > 0 else 30
+    st.session_state.durata_preset = next(
+        (k for k, v in DURATA_PRESET.items() if v == durata_val),
+        "Personalizat"
+    )
+
+
 def render_scenario_config(show_close=True):
+    _apply_pending_scenario()
     if show_close:
         st.markdown("---")
         if st.session_state.current_lectie_id and st.session_state.current_lectie_nume:
@@ -390,6 +425,7 @@ with tab_scenarii:
             st.session_state.durata_preset = "30 secunde"
             st.session_state.durata_custom = 30
             st.session_state.adding_scenariu = True
+            st.session_state.loaded_in_lesson_tab = False
             st.session_state.rename_scenariu_id = None
             st.rerun()
 
@@ -409,34 +445,11 @@ with tab_scenarii:
                 if st.button("👁️", key=f"ls_{s['ID']}"):
                     scenariu = get_scenariu_by_id(s["ID"], user_id)
                     if scenariu:
-                        st.session_state.bortle_slider = int(scenariu["bortle"])
-                        st.session_state.lat = float(scenariu["latitudine"])
-                        st.session_state.lon = float(scenariu["longitudine"])
-                        st.session_state.viteza_slider = int(scenariu["viteza"])
-                        st.session_state.use_current_time_check = True if scenariu["foloseste_data_curenta"] in ("da", "True") else False
-                        st.session_state.afisare_constelatii = True if scenariu["afisare_constelatii"] in ("da", "True") else False
-                        data_ora = scenariu.get("data_si_ora_obs")
-                        if data_ora and data_ora != "None":
-                            try:
-                                dt_obj = datetime.strptime(str(data_ora), "%Y-%m-%d %H:%M:%S")
-                                st.session_state.manual_date = dt_obj.date()
-                                st.session_state.manual_time = dt_obj.time()
-                            except:
-                                pass
-                        for nume_s, (lat_s, lon_s) in ORASE.items():
-                            if abs(lat_s - float(scenariu["latitudine"])) < 0.01 and abs(lon_s - float(scenariu["longitudine"])) < 0.01:
-                                st.session_state.city_selector = nume_s
-                                break
-                        st.session_state.descriere_lectie = str(scenariu.get("text", ""))
-                        durata_val = int(scenariu.get("durata", 0))
-                        st.session_state.durata_custom = durata_val if durata_val > 0 else 30
-                        st.session_state.durata_preset = next(
-                            (k for k, v in DURATA_PRESET.items() if v == durata_val),
-                            "Personalizat"
-                        )
+                        st.session_state["_pending_scenario"] = scenariu
                         st.session_state.current_lectie_id = scenariu["ID"]
                         st.session_state.current_lectie_nume = scenariu["nume"]
                         st.session_state.adding_scenariu = False
+                        st.session_state.loaded_in_lesson_tab = False
                         st.session_state.rename_scenariu_id = None
                         st.rerun()
             with cols[2]:
@@ -675,31 +688,7 @@ with tab_lectii:
                         if st.button("👁️", key=f"vsl_{sc['ID']}"):
                             scenariu = get_scenariu_by_id(sc["ID"], user_id)
                             if scenariu:
-                                st.session_state.bortle_slider = int(scenariu["bortle"])
-                                st.session_state.lat = float(scenariu["latitudine"])
-                                st.session_state.lon = float(scenariu["longitudine"])
-                                st.session_state.viteza_slider = int(scenariu["viteza"])
-                                st.session_state.use_current_time_check = True if scenariu["foloseste_data_curenta"] in ("da", "True") else False
-                                st.session_state.afisare_constelatii = True if scenariu["afisare_constelatii"] in ("da", "True") else False
-                                data_ora = scenariu.get("data_si_ora_obs")
-                                if data_ora and data_ora != "None":
-                                    try:
-                                        dt_obj = datetime.strptime(str(data_ora), "%Y-%m-%d %H:%M:%S")
-                                        st.session_state.manual_date = dt_obj.date()
-                                        st.session_state.manual_time = dt_obj.time()
-                                    except:
-                                        pass
-                                for nume_s, (lat_s, lon_s) in ORASE.items():
-                                    if abs(lat_s - float(scenariu["latitudine"])) < 0.01 and abs(lon_s - float(scenariu["longitudine"])) < 0.01:
-                                        st.session_state.city_selector = nume_s
-                                        break
-                                st.session_state.descriere_lectie = str(scenariu.get("text", ""))
-                                durata_val = int(scenariu.get("durata", 0))
-                                st.session_state.durata_custom = durata_val if durata_val > 0 else 30
-                                st.session_state.durata_preset = next(
-                                    (k for k, v in DURATA_PRESET.items() if v == durata_val),
-                                    "Personalizat"
-                                )
+                                st.session_state["_pending_scenario"] = scenariu
                                 st.session_state.current_lectie_id = scenariu["ID"]
                                 st.session_state.current_lectie_nume = scenariu["nume"]
                                 st.session_state.adding_scenariu = False
